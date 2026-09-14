@@ -63,16 +63,14 @@
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
-    <!-- Top Navbar (Logo Size Increased) -->
-    <nav id="topNav" class="hidden bg-[#0a0a0a] py-3 px-3 flex justify-between items-center relative z-50 shadow-md border-b-[1.5px] border-yellow-500 rounded-b-[1.5rem]">
+    <!-- Top Navbar -->
+    <nav id="topNav" class="hidden bg-[#0a0a0a] py-2.5 px-3 flex justify-between items-center relative z-50 shadow-md border-b-[1.5px] border-yellow-500 rounded-b-[1.5rem]">
         <div class="flex items-center w-full justify-between relative px-1">
-            
-            <!-- Left: Logo (Increased Size w-14 h-14) -->
+            <!-- Left: Logo (Removed Circle Shape, Natural Aspect Ratio) -->
             <div class="flex-shrink-0 z-10">
-                <img id="secretLogo" src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="w-14 h-14 rounded-full cursor-pointer border-[2px] border-yellow-500 object-cover shadow-[0_0_12px_rgba(212,175,55,0.6)]">
+                <img id="secretLogo" src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="h-10 w-auto max-w-[80px] cursor-pointer object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]">
             </div>
             
-            <!-- Center: Title & Subtitle -->
             <div class="flex flex-col items-center justify-center cursor-pointer absolute left-1/2 transform -translate-x-1/2" onclick="goHome()">
                 <span class="font-black text-[20px] tracking-[0.08em] text-white leading-none mt-0.5 whitespace-nowrap">UNIQUE FASHION</span>
                 <div class="flex items-center gap-1.5 mt-1 w-full justify-center opacity-90">
@@ -82,7 +80,6 @@
                 </div>
             </div>
 
-            <!-- Right: Search & Cart Icons -->
             <div class="flex items-center gap-4 text-white text-[18px] flex-shrink-0 z-10">
                 <div class="relative cursor-pointer hover:text-yellow-500 transition drop-shadow-md" onclick="showCart()">
                     <i class="fa-solid fa-cart-shopping"></i>
@@ -214,8 +211,8 @@
                 appDiv.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center bg-gray-50">
                         <i class="fa-solid fa-triangle-exclamation text-6xl text-red-500 mb-5"></i>
-                        <h2 class="text-2xl font-black text-gray-900 tracking-wide uppercase">Database Missing</h2>
-                        <p class="text-gray-600 mt-2 font-medium">Bhai, code mein Firebase Keys paste kar do. Tabhi data load hoga!</p>
+                        <h2 class="text-2xl font-black text-gray-900 tracking-wide uppercase">Database Error</h2>
+                        <p class="text-gray-600 mt-2 font-medium">Failed to connect to Firebase Realtime Database.</p>
                     </div>
                 `;
                 return;
@@ -224,7 +221,7 @@
             try {
                 const CACHE_KEY = 'uf_data_cache';
                 const CACHE_EXPIRY_KEY = 'uf_data_cache_expiry';
-                const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 hours
+                const CACHE_TIME = 24 * 60 * 60 * 1000; 
                 const now = Date.now();
                 
                 const expiry = localStorage.getItem(CACHE_EXPIRY_KEY);
@@ -312,10 +309,10 @@
                 <div class="fade-in p-6 flex flex-col justify-center min-h-screen bg-white">
                     <button onclick="history.back()" class="absolute top-6 left-6 text-gray-800 text-xl"><i class="fa-solid fa-arrow-left"></i></button>
                     <div class="text-center mb-10 mt-8">
-                        <div class="w-24 h-24 mx-auto border-[3px] border-yellow-500 rounded-full overflow-hidden mb-4 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
-                            <img src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" class="w-full h-full object-cover">
+                        <div class="mx-auto mb-4">
+                            <img src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" class="h-20 w-auto mx-auto object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">
                         </div>
-                        <h1 class="text-3xl font-black text-gray-900 tracking-widest uppercase">Welcome Back</h1>
+                        <h1 class="text-3xl font-black text-gray-900 tracking-widest uppercase mt-4">Welcome Back</h1>
                         <p class="text-gray-500 mt-2 text-sm font-bold">Login to view your profile.</p>
                     </div>
                     
@@ -446,7 +443,6 @@
             
             let prodHTML = displayProducts.map(item => {
                 const isLiked = likedItems.includes(item.id);
-                // Safe string parsing for discount
                 const discountVal = item.discount ? String(item.discount).replace(/OFF/gi, '').trim() : '';
                 
                 return `
@@ -460,7 +456,6 @@
                     <div class="p-5 flex flex-col flex-grow border-t border-gray-100">
                         <h3 onclick="viewProduct('${item.id}')" class="text-xl font-extrabold truncate text-gray-900 cursor-pointer hover:text-yellow-600 transition tracking-tight">${item.name}</h3>
                         
-                        <!-- PRICE ORDER & ANIMATION (Flipkart Style) -->
                         <div class="mt-3 flex items-center gap-2">
                             <span class="discount-text text-[15px] font-extrabold flex items-center tracking-tight"><i class="fa-solid fa-arrow-down text-[11px] mr-0.5"></i>${discountVal}</span>
                             <span class="text-gray-400 font-bold text-[15px] strike-anim tracking-tight">₹${item.mrp}</span>
@@ -856,7 +851,6 @@
             if(!finalSize) { alert("Please select required sizes first!"); return; }
             currentSelectedSize = finalSize; 
             
-            // Go Directly to address (NO LOGIN REQUIRED)
             goToAddress(id);
         }
 
@@ -895,27 +889,16 @@
                         let postOffices = data[0].PostOffice;
                         districtEl.value = postOffices[0].District;
                         stateEl.value = postOffices[0].State;
-                        
-                        villageEl.innerHTML = '<option value="" disabled selected>Select Village / Area</option>';
-                        postOffices.forEach(po => {
-                            villageEl.innerHTML += `<option value="${po.Name}">${po.Name}</option>`;
-                        });
-                        villageEl.classList.remove('bg-gray-100', 'text-gray-500');
-                        villageEl.classList.add('bg-white', 'text-gray-900', 'border-yellow-500');
+                        villageEl.value = postOffices[0].Name; // Auto-fill area name
                         statusEl.innerHTML = '<i class="fa-solid fa-check text-green-600"></i> Found';
                     } else {
-                        statusEl.innerHTML = '<span class="text-red-500">Invalid PIN</span>';
-                        districtEl.value = ""; stateEl.value = "";
-                        villageEl.innerHTML = '<option value="" disabled selected>Enter valid PIN first</option>';
-                        villageEl.classList.add('bg-gray-100', 'text-gray-500'); villageEl.classList.remove('bg-white', 'text-gray-900', 'border-yellow-500');
+                        statusEl.innerHTML = '<span class="text-red-500">Not found, type manually</span>';
                     }
                 } catch (e) {
-                    statusEl.innerHTML = '<span class="text-red-500">Error</span>';
+                    statusEl.innerHTML = '<span class="text-red-500">Error, type manually</span>';
                 }
             } else {
-                statusEl.innerHTML = ''; districtEl.value = ""; stateEl.value = "";
-                villageEl.innerHTML = '<option value="" disabled selected>Enter PIN to select Village</option>';
-                villageEl.classList.add('bg-gray-100', 'text-gray-500'); villageEl.classList.remove('bg-white', 'text-gray-900', 'border-yellow-500');
+                statusEl.innerHTML = ''; 
             }
         }
 
@@ -951,22 +934,21 @@
                             <input type="text" id="custName" value="${currentUser ? currentUser.name : ''}" required placeholder="Full Name" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition">
                             <input type="tel" id="custPhone" value="${currentUser ? currentUser.phone : ''}" required placeholder="Phone Number" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition">
                             
+                            <!-- EDITABLE PINCODE & ADDRESS FIELDS -->
                             <div class="relative mt-2 border-t border-gray-100 pt-5">
-                                <label class="text-xs font-bold text-gray-500 mb-1 block">PIN CODE</label>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">PIN CODE (Auto-fills below, or type manually)</label>
                                 <input type="number" id="custPincode" placeholder="6-Digit PIN" required pattern="[0-9]{6}" maxlength="6" onkeyup="fetchPinCodeDetails(this.value)" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-bold tracking-widest transition">
-                                <p id="pinStatus" class="text-[10px] text-yellow-600 absolute right-4 top-[44px] font-bold"></p>
+                                <p id="pinStatus" class="text-[10px] text-yellow-600 absolute right-4 top-[60px] font-bold"></p>
                             </div>
                             
                             <div class="flex gap-3">
-                                <input type="text" id="custDistrict" placeholder="District" required readonly class="bg-gray-100 border border-gray-200 text-gray-500 p-3.5 rounded-lg w-1/2 text-sm font-medium focus:outline-none">
-                                <input type="text" id="custState" placeholder="State" required readonly class="bg-gray-100 border border-gray-200 text-gray-500 p-3.5 rounded-lg w-1/2 text-sm font-medium focus:outline-none">
+                                <input type="text" id="custState" placeholder="State" required class="bg-white border border-gray-300 text-gray-900 p-3.5 rounded-lg w-1/2 text-sm font-medium focus:border-yellow-500 outline-none transition">
+                                <input type="text" id="custDistrict" placeholder="City / District" required class="bg-white border border-gray-300 text-gray-900 p-3.5 rounded-lg w-1/2 text-sm font-medium focus:border-yellow-500 outline-none transition">
                             </div>
                             
-                            <select id="custVillage" required class="bg-gray-100 border border-gray-200 text-gray-500 p-3.5 rounded-lg w-full text-sm font-medium focus:outline-none focus:border-yellow-500 transition cursor-pointer">
-                                <option value="" disabled selected>Enter PIN to select Village / Area</option>
-                            </select>
+                            <input type="text" id="custVillage" placeholder="Area / Village / Locality" required class="bg-white border border-gray-300 text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium focus:border-yellow-500 outline-none transition mt-1">
                             
-                            <textarea id="custAddress" placeholder="Complete Address (House No, Street Area)" required class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition mt-2" rows="3"></textarea>
+                            <textarea id="custAddress" placeholder="Complete Address (House No, Street, Landmark)" required class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition mt-1" rows="3"></textarea>
                         </div>
                         
                         <div class="fixed bottom-[64px] left-0 w-full bg-white border-t border-gray-200 p-3 max-w-md mx-auto z-40 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
@@ -991,12 +973,11 @@
             const baseAddress = document.getElementById('custAddress').value;
             
             if(!district || !state || !village) {
-                alert("Please enter a valid PIN Code and select your Village/Area!");
+                alert("Please enter your State and City properly!");
                 return;
             }
             tempCheckoutData.address = `${baseAddress}, ${village}, ${district}, ${state} (PIN: ${pincode})`;
             
-            // Background Auto Login/Registration
             if (!currentUser || currentUser.phone !== tempCheckoutData.phone) {
                 const phoneStr = tempCheckoutData.phone;
                 db.ref('users/' + phoneStr).once('value').then(snap => {
@@ -1107,7 +1088,6 @@
                 const waNum = paymentSettings.whatsapp;
                 const waText = encodeURIComponent(`Hello Unique Fashion, here is my payment screenshot for Order ID: ${newOrder.id}`);
 
-                // Replace state so back button goes home instead of payment screen
                 history.replaceState({ page: 'home', param: null }, '', '#home');
 
                 appDiv.innerHTML = `
@@ -1160,7 +1140,6 @@
                             statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-600 text-[9px] rounded border border-yellow-200 uppercase font-extrabold"><i class="fa-solid fa-clock"></i> ${currentStatus}</span>`;
                         }
 
-                        // MULTIPLE ITEMS RENDERING LOGIC
                         let itemsHTML = "";
                         if (order.items && order.items.length > 0) {
                             itemsHTML = `<div class="mt-3 flex flex-col gap-2">` + order.items.map(item => `
