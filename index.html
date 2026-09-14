@@ -111,24 +111,20 @@
 
     <script>
         // --- FIREBASE INITIALIZATION ---
-        // BHAi, YAHAN APNE NAYE FIREBASE PROJECT KI KEYS PASTE KARNA ZAROORI HAI!
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyASPAURqgDQWu-jQaj5_tPjuIhZNtWzUqo",
+            authDomain: "ai-calling-agent-7caac.firebaseapp.com",
+            databaseURL: "https://ai-calling-agent-7caac-default-rtdb.firebaseio.com", // <-- Database link added manually
+            projectId: "ai-calling-agent-7caac",
+            storageBucket: "ai-calling-agent-7caac.firebasestorage.app",
+            messagingSenderId: "414705823578",
+            appId: "1:414705823578:web:d7d84cd62dc04bcffd8d63"
         };
         
         let db = null;
         try {
-            // Check lagaya hai taaki crash na ho agar key na daali ho
-            if(firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey.trim() !== "") {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.database();
-            }
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
         } catch(e) {
             console.error("Firebase init failed:", e);
         }
@@ -208,13 +204,12 @@
 
         // --- REALTIME DATABASE SYNC WITH 24-HOUR LOCAL STORAGE CACHE ---
         async function initApp() {
-            // AGAR DATABASE KEY NAHI HAI TOH YAHAN MESSAGE DIKHEGA
             if (!db) {
                 appDiv.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center bg-gray-50">
                         <i class="fa-solid fa-triangle-exclamation text-6xl text-red-500 mb-5"></i>
-                        <h2 class="text-2xl font-black text-gray-900 tracking-wide uppercase">Database Missing</h2>
-                        <p class="text-gray-600 mt-2 font-medium">Bhai, code mein <b>Line 85</b> ke aas-paas apni nayi Firebase Keys (YOUR_API_KEY wagera) paste kar do. Tabhi data load hoga!</p>
+                        <h2 class="text-2xl font-black text-gray-900 tracking-wide uppercase">Database Error</h2>
+                        <p class="text-gray-600 mt-2 font-medium">Failed to connect to Firebase Realtime Database.</p>
                     </div>
                 `;
                 return;
@@ -1193,7 +1188,7 @@
                 } else {
                     myOrdersHTML = `<div class="text-center p-10 bg-white rounded-xl border border-gray-200 mt-4 shadow-sm"><div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100"><i class="fa-solid fa-box-open text-4xl text-gray-300"></i></div><h2 class="text-gray-800 font-extrabold text-lg">No Orders Found</h2><p class="text-gray-500 text-xs mt-1 mb-6">You haven't placed any orders yet.</p><button onclick="goHome()" class="bg-white border border-yellow-500 text-yellow-600 px-8 py-2.5 rounded-lg text-sm font-extrabold shadow-sm hover:bg-yellow-50 transition">Start Shopping</button></div>`;
                 }
-                appDiv.innerHTML = `<div class="fade-in p-5 pb-24 bg-gray-50 min-h-screen"><button onclick="history.back()" class="mb-4 text-gray-600 text-xl"><i class="fa-solid fa-arrow-left"></i></button><div class="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3"><div class="w-1.5 h-6 bg-yellow-500 rounded"></div><h1 class="text-xl font-extrabold text-gray-800 uppercase tracking-wide">My Orders</h1></div>${myOrdersHTML}</div>`;
+                appDiv.innerHTML = `<div class="fade-in p-5 pb-24 bg-gray-50 min-h-screen"><button onclick="history.back()" class="mb-4 text-gray-600 text-xl"><i class="fa-solid fa-arrow-left"></i></button><div class="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3"><div class="w-1.5 h-6 bg-red-500 rounded"></div><h1 class="text-xl font-extrabold text-gray-800 uppercase tracking-wide">My Orders</h1></div>${myOrdersHTML}</div>`;
             }).catch(() => { appDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Error connecting to database.</div>`; });
         }
 
