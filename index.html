@@ -63,15 +63,18 @@
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
-    <!-- Top Navbar -->
-    <nav id="topNav" class="hidden bg-[#0a0a0a] py-2.5 px-3 flex justify-between items-center relative z-50 shadow-md border-b-[1.5px] border-yellow-500 rounded-b-[1.5rem]">
+    <!-- Top Navbar (Logo Size Increased) -->
+    <nav id="topNav" class="hidden bg-[#0a0a0a] py-3 px-3 flex justify-between items-center relative z-50 shadow-md border-b-[1.5px] border-yellow-500 rounded-b-[1.5rem]">
         <div class="flex items-center w-full justify-between relative px-1">
-            <div class="flex-shrink-0">
-                <img id="secretLogo" src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="w-10 h-10 rounded-full cursor-pointer border-[1.5px] border-yellow-500 object-cover shadow-[0_0_8px_rgba(212,175,55,0.4)]">
+            
+            <!-- Left: Logo (Increased Size w-14 h-14) -->
+            <div class="flex-shrink-0 z-10">
+                <img id="secretLogo" src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="w-14 h-14 rounded-full cursor-pointer border-[2px] border-yellow-500 object-cover shadow-[0_0_12px_rgba(212,175,55,0.6)]">
             </div>
             
+            <!-- Center: Title & Subtitle -->
             <div class="flex flex-col items-center justify-center cursor-pointer absolute left-1/2 transform -translate-x-1/2" onclick="goHome()">
-                <span class="font-black text-[18px] tracking-[0.08em] text-white leading-none mt-0.5 whitespace-nowrap">UNIQUE FASHION</span>
+                <span class="font-black text-[20px] tracking-[0.08em] text-white leading-none mt-0.5 whitespace-nowrap">UNIQUE FASHION</span>
                 <div class="flex items-center gap-1.5 mt-1 w-full justify-center opacity-90">
                     <div class="w-5 h-[1px] bg-yellow-500"></div>
                     <span class="text-[6.5px] tracking-[0.2em] text-yellow-500 uppercase whitespace-nowrap font-bold">Style Your Story</span>
@@ -79,7 +82,8 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-4 text-white text-[18px] flex-shrink-0">
+            <!-- Right: Search & Cart Icons -->
+            <div class="flex items-center gap-4 text-white text-[18px] flex-shrink-0 z-10">
                 <div class="relative cursor-pointer hover:text-yellow-500 transition drop-shadow-md" onclick="showCart()">
                     <i class="fa-solid fa-cart-shopping"></i>
                     <span id="topCartBadge" class="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full hidden border border-black shadow-sm">0</span>
@@ -114,7 +118,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyASPAURqgDQWu-jQaj5_tPjuIhZNtWzUqo",
             authDomain: "ai-calling-agent-7caac.firebaseapp.com",
-            databaseURL: "https://ai-calling-agent-7caac-default-rtdb.firebaseio.com", // <-- Database link added manually
+            databaseURL: "https://ai-calling-agent-7caac-default-rtdb.firebaseio.com",
             projectId: "ai-calling-agent-7caac",
             storageBucket: "ai-calling-agent-7caac.firebasestorage.app",
             messagingSenderId: "414705823578",
@@ -123,8 +127,10 @@
         
         let db = null;
         try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.database();
+            if(firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey.trim() !== "") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+            }
         } catch(e) {
             console.error("Firebase init failed:", e);
         }
@@ -208,8 +214,8 @@
                 appDiv.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center bg-gray-50">
                         <i class="fa-solid fa-triangle-exclamation text-6xl text-red-500 mb-5"></i>
-                        <h2 class="text-2xl font-black text-gray-900 tracking-wide uppercase">Database Error</h2>
-                        <p class="text-gray-600 mt-2 font-medium">Failed to connect to Firebase Realtime Database.</p>
+                        <h2 class="text-2xl font-black text-gray-900 tracking-wide uppercase">Database Missing</h2>
+                        <p class="text-gray-600 mt-2 font-medium">Bhai, code mein Firebase Keys paste kar do. Tabhi data load hoga!</p>
                     </div>
                 `;
                 return;
@@ -438,7 +444,6 @@
                 </div>
             `).join('');
             
-            // --- SINGLE COLUMN PRODUCT CARDS WITH FLIPKART STYLE PRICE ---
             let prodHTML = displayProducts.map(item => {
                 const isLiked = likedItems.includes(item.id);
                 // Safe string parsing for discount
