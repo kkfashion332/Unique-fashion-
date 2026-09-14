@@ -111,7 +111,7 @@
 
     <script>
         // --- FIREBASE INITIALIZATION ---
-        // Yahan apne naye project ki API keys dalein
+        // BHAi, YAHAN APNE NAYE FIREBASE PROJECT KI KEYS PASTE KARNA ZAROORI HAI!
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_AUTH_DOMAIN",
@@ -122,12 +122,16 @@
             appId: "YOUR_APP_ID"
         };
         
-        // Prevent crashing if Firebase keys are empty
-        if(firebaseConfig.apiKey !== "YOUR_API_KEY") {
-            firebase.initializeApp(firebaseConfig);
+        let db = null;
+        try {
+            // Check lagaya hai taaki crash na ho agar key na daali ho
+            if(firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey.trim() !== "") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+            }
+        } catch(e) {
+            console.error("Firebase init failed:", e);
         }
-        
-        const db = firebase.database ? firebase.database() : null;
 
         // --- DYNAMIC DATA STATE ---
         let categories = []; 
@@ -135,7 +139,6 @@
         let banners = [];
         let paymentSettings = { qr_url: "", upi_id: "", whatsapp: "" };
         
-        // Changed prefix to uf_ (Unique Fashion) to avoid conflicts
         let currentUser = JSON.parse(localStorage.getItem('uf_currentUser')) || null;
         let cart = JSON.parse(localStorage.getItem('uf_cart')) || [];
         let likedItems = JSON.parse(localStorage.getItem('uf_likes')) || [];
@@ -205,11 +208,18 @@
 
         // --- REALTIME DATABASE SYNC WITH 24-HOUR LOCAL STORAGE CACHE ---
         async function initApp() {
+            // AGAR DATABASE KEY NAHI HAI TOH YAHAN MESSAGE DIKHEGA
             if (!db) {
-                appDiv.innerHTML = `<div class="text-center mt-20 text-yellow-600 font-bold p-5">Please update Firebase Configuration in code first.</div>`;
+                appDiv.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center bg-gray-50">
+                        <i class="fa-solid fa-triangle-exclamation text-6xl text-red-500 mb-5"></i>
+                        <h2 class="text-2xl font-black text-gray-900 tracking-wide uppercase">Database Missing</h2>
+                        <p class="text-gray-600 mt-2 font-medium">Bhai, code mein <b>Line 85</b> ke aas-paas apni nayi Firebase Keys (YOUR_API_KEY wagera) paste kar do. Tabhi data load hoga!</p>
+                    </div>
+                `;
                 return;
             }
-            
+
             try {
                 const CACHE_KEY = 'uf_data_cache';
                 const CACHE_EXPIRY_KEY = 'uf_data_cache_expiry';
@@ -268,7 +278,7 @@
                 _goHome();
                 updateCartBadge();
             } catch (error) {
-                appDiv.innerHTML = `<div class="text-center mt-20 text-red-500 font-bold">Network Error. Please refresh.</div>`;
+                appDiv.innerHTML = `<div class="text-center mt-20 text-red-500 font-bold">Network Error. Please check Firebase Rules.</div>`;
             }
         }
 
@@ -433,8 +443,10 @@
                 </div>
             `).join('');
             
+            // --- SINGLE COLUMN PRODUCT CARDS WITH FLIPKART STYLE PRICE ---
             let prodHTML = displayProducts.map(item => {
                 const isLiked = likedItems.includes(item.id);
+                // Safe string parsing for discount
                 const discountVal = item.discount ? String(item.discount).replace(/OFF/gi, '').trim() : '';
                 
                 return `
@@ -448,6 +460,7 @@
                     <div class="p-5 flex flex-col flex-grow border-t border-gray-100">
                         <h3 onclick="viewProduct('${item.id}')" class="text-xl font-extrabold truncate text-gray-900 cursor-pointer hover:text-yellow-600 transition tracking-tight">${item.name}</h3>
                         
+                        <!-- PRICE ORDER & ANIMATION (Flipkart Style) -->
                         <div class="mt-3 flex items-center gap-2">
                             <span class="discount-text text-[15px] font-extrabold flex items-center tracking-tight"><i class="fa-solid fa-arrow-down text-[11px] mr-0.5"></i>${discountVal}</span>
                             <span class="text-gray-400 font-bold text-[15px] strike-anim tracking-tight">₹${item.mrp}</span>
@@ -458,7 +471,7 @@
                             <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-white border-2 border-yellow-500 text-yellow-600 font-extrabold py-3.5 rounded-xl text-xs shadow-sm hover:bg-yellow-50 hover:shadow transition flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-cart-plus text-base"></i> ADD TO CART
                             </button>
-                            <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-3.5 rounded-xl shadow-md hover:shadow-lg transition text-xs flex items-center justify-center gap-2">
+                            <button onclick="event.stopPropagation(); handleBuyNow('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-3.5 rounded-xl shadow-md hover:shadow-lg transition text-xs flex items-center justify-center gap-2">
                                 BUY NOW <i class="fa-solid fa-arrow-right text-xs"></i>
                             </button>
                         </div>
@@ -541,7 +554,7 @@
             let html = "";
 
             if (likedProducts.length === 0) {
-                html = `<div class="text-center p-10 mt-10"><i class="fa-solid fa-heart-crack text-5xl text-gray-300 mb-4"></i><h2 class="text-gray-600 font-bold text-lg">No Liked Items</h2><button onclick="history.back()" class="mt-6 bg-white border border-yellow-500 text-yellow-600 px-6 py-2 rounded-lg font-bold shadow-sm hover:bg-yellow-50">Explore Collection</button></div>`;
+                html = `<div class="text-center p-10 mt-10"><i class="fa-solid fa-heart-crack text-5xl text-gray-300 mb-4"></i><h2 class="text-gray-600 font-bold text-lg">No Liked Items</h2><p class="text-xs text-gray-500 mt-2">Heart your favorite products to see them here.</p><button onclick="history.back()" class="mt-6 bg-white border border-yellow-500 text-yellow-600 px-6 py-2 rounded-lg font-bold shadow-sm hover:bg-yellow-50">Explore Collection</button></div>`;
             } else {
                 html = `<div class="grid grid-cols-2 gap-4">` + likedProducts.map(item => {
                     const discountVal = item.discount ? String(item.discount).replace(/OFF/gi, '').trim() : '';
@@ -558,7 +571,7 @@
                             </div>
                             <div class="flex justify-between gap-1.5 mt-3">
                                 <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-white border border-yellow-500 text-yellow-600 font-bold py-1.5 rounded-[6px] text-[9px] shadow-sm flex items-center justify-center gap-1"><i class="fa-solid fa-cart-plus"></i> CART</button>
-                                <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-1.5 rounded-[6px] shadow-sm text-[9px]">BUY NOW</button>
+                                <button onclick="event.stopPropagation(); handleBuyNow('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-1.5 rounded-[6px] shadow-sm text-[9px]">BUY NOW</button>
                             </div>
                         </div>
                     </div>
@@ -686,7 +699,7 @@
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-5 relative">
                             <h1 class="text-xl font-extrabold text-gray-900 leading-tight pr-10">${product.name}</h1>
                             
-                            <!-- NEW PRICE ORDER & ANIMATION (Flipkart Style) -->
+                            <!-- PRICE ORDER & ANIMATION (Flipkart Style) -->
                             <div class="mt-4 flex items-center gap-2.5">
                                 <span class="discount-text text-lg font-extrabold flex items-center tracking-tight"><i class="fa-solid fa-arrow-down text-[13px] mr-1"></i>${discountVal}</span>
                                 <span class="text-gray-400 font-bold text-lg strike-anim tracking-tight">₹${product.mrp}</span>
