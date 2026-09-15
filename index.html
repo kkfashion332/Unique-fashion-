@@ -64,11 +64,11 @@
 <body class="bg-gray-50 text-gray-900 font-sans">
 
     <!-- Top Navbar -->
-    <nav id="topNav" class="hidden bg-[#0a0a0a] py-3 px-3 flex justify-between items-center relative z-50 shadow-md border-b-[1.5px] border-yellow-500 rounded-b-[1.5rem]">
+    <nav id="topNav" class="hidden bg-[#0a0a0a] py-2.5 px-3 flex justify-between items-center relative z-50 shadow-md border-b-[1.5px] border-yellow-500 rounded-b-[1.5rem]">
         <div class="flex items-center w-full justify-between relative px-1">
-            
+            <!-- Left: Logo (Removed Circle Shape, Natural Aspect Ratio) -->
             <div class="flex-shrink-0 z-10">
-                <img id="secretLogo" src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="w-14 h-14 rounded-full cursor-pointer border-[2px] border-yellow-500 object-cover shadow-[0_0_12px_rgba(212,175,55,0.6)]">
+                <img id="secretLogo" src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="h-10 w-auto max-w-[80px] cursor-pointer object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]">
             </div>
             
             <div class="flex flex-col items-center justify-center cursor-pointer absolute left-1/2 transform -translate-x-1/2" onclick="goHome()">
@@ -466,8 +466,7 @@
                             <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-white border-2 border-yellow-500 text-yellow-600 font-extrabold py-3.5 rounded-xl text-xs shadow-sm hover:bg-yellow-50 hover:shadow transition flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-cart-plus text-base"></i> ADD TO CART
                             </button>
-                            <!-- FIXED: Now redirects to viewProduct so user can select size instead of direct error -->
-                            <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-3.5 rounded-xl shadow-md hover:shadow-lg transition text-xs flex items-center justify-center gap-2">
+                            <button onclick="event.stopPropagation(); handleBuyNow('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-3.5 rounded-xl shadow-md hover:shadow-lg transition text-xs flex items-center justify-center gap-2">
                                 BUY NOW <i class="fa-solid fa-arrow-right text-xs"></i>
                             </button>
                         </div>
@@ -567,8 +566,7 @@
                             </div>
                             <div class="flex justify-between gap-1.5 mt-3">
                                 <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-white border border-yellow-500 text-yellow-600 font-bold py-1.5 rounded-[6px] text-[9px] shadow-sm flex items-center justify-center gap-1"><i class="fa-solid fa-cart-plus"></i> CART</button>
-                                <!-- FIXED: Now redirects to viewProduct so user can select size instead of direct error -->
-                                <button onclick="event.stopPropagation(); viewProduct('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-1.5 rounded-[6px] shadow-sm text-[9px]">BUY NOW</button>
+                                <button onclick="event.stopPropagation(); handleBuyNow('${item.id}')" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white font-extrabold py-1.5 rounded-[6px] shadow-sm text-[9px]">BUY NOW</button>
                             </div>
                         </div>
                     </div>
@@ -659,20 +657,13 @@
             let hasShirt = !!product.shirtSizes && product.shirtSizes.trim() !== "";
             let hasJeans = !!product.jeansSizes && product.jeansSizes.trim() !== "";
 
-            // FIXED: Cleaned IDs so labels map perfectly to inputs even if size text has spaces
             if (hasShirt) {
                 let sArr = product.shirtSizes.split(',').map(s => s.trim());
-                sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${sArr.map(s => {
-                    let safeId = s.replace(/\s+/g, '-');
-                    return `<div><input type="radio" name="comboShirt" id="cs1-${safeId}" value="${s}" class="hidden size-radio" onchange="selectComboSize1('${s}')"><label for="cs1-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
-                }).join('')}</div>`;
+                sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${sArr.map(s => `<div><input type="radio" name="comboShirt" id="cs1-${s}" value="${s}" class="hidden size-radio" onchange="selectComboSize1('${s}')"><label for="cs1-${s}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`).join('')}</div>`;
             }
             if (hasJeans) {
                 let jArr = product.jeansSizes.split(',').map(s => s.trim());
-                sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${jArr.map(s => {
-                    let safeId = s.replace(/\s+/g, '-');
-                    return `<div><input type="radio" name="comboJeans" id="cs2-${safeId}" value="${s}" class="hidden size-radio" onchange="selectComboSize2('${s}')"><label for="cs2-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
-                }).join('')}</div>`;
+                sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${jArr.map(s => `<div><input type="radio" name="comboJeans" id="cs2-${s}" value="${s}" class="hidden size-radio" onchange="selectComboSize2('${s}')"><label for="cs2-${s}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`).join('')}</div>`;
             }
             if (!hasShirt && !hasJeans) {
                 sizeHTML += `<div class="flex flex-wrap gap-3"><div><input type="radio" name="productSize" id="size-Free" value="Free Size" class="hidden size-radio" onchange="selectSize('Free Size')"><label for="size-Free" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-4 py-2 rounded-md shadow-sm hover:border-yellow-500 transition block">Free Size</label></div></div>`;
@@ -860,7 +851,6 @@
             if(!finalSize) { alert("Please select required sizes first!"); return; }
             currentSelectedSize = finalSize; 
             
-            // Go Directly to address (NO LOGIN REQUIRED)
             goToAddress(id);
         }
 
@@ -899,27 +889,16 @@
                         let postOffices = data[0].PostOffice;
                         districtEl.value = postOffices[0].District;
                         stateEl.value = postOffices[0].State;
-                        
-                        villageEl.innerHTML = '<option value="" disabled selected>Select Village / Area</option>';
-                        postOffices.forEach(po => {
-                            villageEl.innerHTML += `<option value="${po.Name}">${po.Name}</option>`;
-                        });
-                        villageEl.classList.remove('bg-gray-100', 'text-gray-500');
-                        villageEl.classList.add('bg-white', 'text-gray-900', 'border-yellow-500');
+                        villageEl.value = postOffices[0].Name; // Auto-fill area name
                         statusEl.innerHTML = '<i class="fa-solid fa-check text-green-600"></i> Found';
                     } else {
                         statusEl.innerHTML = '<span class="text-red-500">Not found, type manually</span>';
-                        districtEl.value = ""; stateEl.value = "";
-                        villageEl.innerHTML = '<option value="" disabled selected>Enter valid PIN first</option>';
-                        villageEl.classList.add('bg-gray-100', 'text-gray-500'); villageEl.classList.remove('bg-white', 'text-gray-900', 'border-yellow-500');
                     }
                 } catch (e) {
                     statusEl.innerHTML = '<span class="text-red-500">Error, type manually</span>';
                 }
             } else {
-                statusEl.innerHTML = ''; districtEl.value = ""; stateEl.value = "";
-                villageEl.innerHTML = '<option value="" disabled selected>Enter PIN to select Village</option>';
-                villageEl.classList.add('bg-gray-100', 'text-gray-500'); villageEl.classList.remove('bg-white', 'text-gray-900', 'border-yellow-500');
+                statusEl.innerHTML = ''; 
             }
         }
 
@@ -967,11 +946,9 @@
                                 <input type="text" id="custDistrict" placeholder="City / District" required class="bg-white border border-gray-300 text-gray-900 p-3.5 rounded-lg w-1/2 text-sm font-medium focus:border-yellow-500 outline-none transition">
                             </div>
                             
-                            <select id="custVillage" required class="bg-gray-100 border border-gray-200 text-gray-500 p-3.5 rounded-lg w-full text-sm font-medium focus:outline-none focus:border-yellow-500 transition cursor-pointer">
-                                <option value="" disabled selected>Enter PIN to select Village / Area</option>
-                            </select>
+                            <input type="text" id="custVillage" placeholder="Area / Village / Locality" required class="bg-white border border-gray-300 text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium focus:border-yellow-500 outline-none transition mt-1">
                             
-                            <textarea id="custAddress" placeholder="Complete Address (House No, Street, Landmark)" required class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition mt-2" rows="3"></textarea>
+                            <textarea id="custAddress" placeholder="Complete Address (House No, Street, Landmark)" required class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition mt-1" rows="3"></textarea>
                         </div>
                         
                         <div class="fixed bottom-[64px] left-0 w-full bg-white border-t border-gray-200 p-3 max-w-md mx-auto z-40 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
@@ -1001,7 +978,6 @@
             }
             tempCheckoutData.address = `${baseAddress}, ${village}, ${district}, ${state} (PIN: ${pincode})`;
             
-            // Background Auto Login/Registration
             if (!currentUser || currentUser.phone !== tempCheckoutData.phone) {
                 const phoneStr = tempCheckoutData.phone;
                 db.ref('users/' + phoneStr).once('value').then(snap => {
@@ -1112,7 +1088,6 @@
                 const waNum = paymentSettings.whatsapp;
                 const waText = encodeURIComponent(`Hello Unique Fashion, here is my payment screenshot for Order ID: ${newOrder.id}`);
 
-                // Replace state so back button goes home instead of payment screen
                 history.replaceState({ page: 'home', param: null }, '', '#home');
 
                 appDiv.innerHTML = `
@@ -1165,7 +1140,6 @@
                             statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-600 text-[9px] rounded border border-yellow-200 uppercase font-extrabold"><i class="fa-solid fa-clock"></i> ${currentStatus}</span>`;
                         }
 
-                        // MULTIPLE ITEMS RENDERING LOGIC
                         let itemsHTML = "";
                         if (order.items && order.items.length > 0) {
                             itemsHTML = `<div class="mt-3 flex flex-col gap-2">` + order.items.map(item => `
