@@ -21,6 +21,7 @@
             color: #fff;
             border-color: #eab308;
         }
+        /* Make inputs autofill look clean in light theme */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -32,7 +33,7 @@
         .strike-anim {
             position: relative;
             display: inline-block;
-            color: #878787;
+            color: #878787; /* Gray color for old price */
         }
         .strike-anim::after {
             content: '';
@@ -51,7 +52,7 @@
         }
 
         .discount-text {
-            color: #16a34a;
+            color: #16a34a; /* Flipkart Green */
             animation: pulseText 1.2s infinite alternate ease-in-out;
         }
         @keyframes pulseText {
@@ -95,7 +96,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar (UPDATED: Added New Collection, Moved Orders, Removed Profile) -->
+    <!-- Bottom Navigation Bar -->
     <div id="bottomNav" class="hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-2 max-w-md mx-auto z-[60] flex justify-around items-center h-16 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
         <div onclick="showLikes()" class="flex flex-col items-center w-1/5 text-gray-400 hover:text-yellow-500 cursor-pointer transition-colors"><i class="fa-solid fa-heart text-[20px]"></i><span class="text-[9px] mt-1 font-bold">Likes</span></div>
         
@@ -188,7 +189,12 @@
             bottomNav.classList.remove('hidden');
         }
 
-        // --- REALTIME DATABASE SYNC WITH 24-HOUR LOCAL STORAGE CACHE ---
+        function hideNavs() {
+            topNav.classList.add('hidden');
+            bottomNav.classList.add('hidden');
+        }
+
+        // --- REALTIME DATABASE SYNC (CACHE REMOVED FOR IMMEDIATE UPDATES) ---
         async function initApp() {
             if (!db) {
                 appDiv.innerHTML = `
@@ -202,55 +208,36 @@
             }
 
             try {
-                const CACHE_KEY = 'uf_data_cache';
-                const CACHE_EXPIRY_KEY = 'uf_data_cache_expiry';
-                const CACHE_TIME = 24 * 60 * 60 * 1000; 
-                const now = Date.now();
-                
-                const expiry = localStorage.getItem(CACHE_EXPIRY_KEY);
-                const cachedData = localStorage.getItem(CACHE_KEY);
+                // Fetch fresh data from Firebase EVERY TIME to ensure Admin updates show instantly
+                const setupCheck = await db.ref('settings/payment').once('value');
+                if (!setupCheck.exists()) await seedInitialData();
 
-                if (cachedData && expiry && now < parseInt(expiry)) {
-                    const parsedData = JSON.parse(cachedData);
-                    categories = parsedData.categories || [];
-                    products = parsedData.products || [];
-                    banners = parsedData.banners || [];
-                    if(parsedData.paymentSettings) paymentSettings = parsedData.paymentSettings;
-                } else {
-                    const setupCheck = await db.ref('settings/payment').once('value');
-                    if (!setupCheck.exists()) await seedInitialData();
-
-                    const catSnap = await db.ref('categories').once('value');
-                    if(catSnap.exists()) {
-                        categories = []; 
-                        catSnap.forEach(child => {
-                            if(child.val() && typeof child.val() === 'object') categories.push(child.val());
-                        });
-                    }
-
-                    const pSnap = await db.ref('products').once('value');
-                    if(pSnap.exists()) {
-                        products = [];
-                        pSnap.forEach(child => {
-                            if(child.val() && typeof child.val() === 'object') products.push(child.val());
-                        });
-                    }
-
-                    const bSnap = await db.ref('banners').once('value');
-                    if(bSnap.exists()) {
-                        banners = [];
-                        bSnap.forEach(child => {
-                            if(child.val() && typeof child.val() === 'object') banners.push(child.val());
-                        });
-                    }
-
-                    const paySnap = await db.ref('settings/payment').once('value');
-                    if(paySnap.exists()) paymentSettings = paySnap.val();
-
-                    const dataToCache = { categories, products, banners, paymentSettings };
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(dataToCache));
-                    localStorage.setItem(CACHE_EXPIRY_KEY, (now + CACHE_TIME).toString());
+                const catSnap = await db.ref('categories').once('value');
+                categories = []; 
+                if(catSnap.exists()) {
+                    catSnap.forEach(child => {
+                        if(child.val() && typeof child.val() === 'object') categories.push(child.val());
+                    });
                 }
+
+                const pSnap = await db.ref('products').once('value');
+                products = [];
+                if(pSnap.exists()) {
+                    pSnap.forEach(child => {
+                        if(child.val() && typeof child.val() === 'object') products.push(child.val());
+                    });
+                }
+
+                const bSnap = await db.ref('banners').once('value');
+                banners = [];
+                if(bSnap.exists()) {
+                    bSnap.forEach(child => {
+                        if(child.val() && typeof child.val() === 'object') banners.push(child.val());
+                    });
+                }
+
+                const paySnap = await db.ref('settings/payment').once('value');
+                if(paySnap.exists()) paymentSettings = paySnap.val();
 
                 if (!history.state) {
                     history.replaceState({ page: 'home', param: null }, '', '#home');
@@ -311,7 +298,7 @@
                 const discountVal = item.discount ? String(item.discount).replace(/OFF/gi, '').trim() : '';
                 
                 return `
-                <div class="bg-white border border-gray-200 rounded-[20px] shadow-[0_6px_20px_rgba(0,0,0,0.06)] relative flex flex-col justify-between overflow-hidden group">
+                <div class="bg-white border border-gray-200 rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.04)] relative flex flex-col justify-between overflow-hidden group">
                     <button onclick="event.stopPropagation(); handleLikeClick(this, '${item.id}')" class="absolute top-2 right-2 ${isLiked ? 'text-red-500' : 'text-gray-300'} z-10 text-xl bg-white/80 rounded-full w-8 h-8 flex items-center justify-center backdrop-blur-sm shadow-sm transition-colors hover:scale-110">
                         <i class="fa-solid fa-heart"></i>
                     </button>
@@ -342,6 +329,7 @@
 
             if(displayProducts.length === 0) { prodHTML = `<div class="col-span-2 text-center text-gray-500 py-10 font-semibold w-full">No products found.</div>`; }
 
+            // NEW: Multiple banners with auto-swipe logic
             let bannerHTML = banners.map(b => `
                 <a href="${b.target_link || '#'}" class="min-w-full flex-shrink-0 snap-center relative h-60 block">
                     <img src="${b.img}" class="w-full h-full object-cover">
@@ -350,6 +338,7 @@
 
             appDiv.innerHTML = `
                 <div id="homeView" class="fade-in bg-gray-50 min-h-screen pb-6">
+                    <!-- Banner Slider -->
                     <div id="bannerSlider" class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar relative shadow-sm" style="scroll-behavior: smooth;">
                         ${bannerHTML}
                     </div>
@@ -370,6 +359,7 @@
             `;
             window.scrollTo(0,0);
 
+            // Banner Auto-swipe Initializer
             if(window.bannerScrollInterval) clearInterval(window.bannerScrollInterval);
             if(banners.length > 1) {
                 setTimeout(() => {
@@ -381,9 +371,9 @@
                         }
                         const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
                         if(slider.scrollLeft >= maxScrollLeft - 5) {
-                            slider.scrollTo({ left: 0, behavior: 'smooth' });
+                            slider.scrollTo({ left: 0, behavior: 'smooth' }); // Go back to start
                         } else {
-                            slider.scrollBy({ left: slider.clientWidth, behavior: 'smooth' });
+                            slider.scrollBy({ left: slider.clientWidth, behavior: 'smooth' }); // Scroll one image
                         }
                     }, 3000); 
                 }, 500);
@@ -718,6 +708,7 @@
             }
         }
 
+        // --- GUEST CHECKOUT (BUY NOW DIRECTLY) ---
         function handleBuyNow(id) {
             const product = products.find(p => p.id === id);
             const finalSize = getValidatedSize(product);
@@ -819,6 +810,7 @@
                             <input type="text" id="custName" value="${currentUser ? currentUser.name : ''}" required placeholder="Full Name" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition">
                             <input type="tel" id="custPhone" value="${currentUser ? currentUser.phone : ''}" required placeholder="Phone Number" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition">
                             
+                            <!-- EDITABLE PINCODE & ADDRESS FIELDS -->
                             <div class="relative mt-2 border-t border-gray-100 pt-5">
                                 <label class="text-xs font-bold text-gray-500 mb-1 block">PIN CODE (Auto-fills below, or type manually)</label>
                                 <input type="number" id="custPincode" placeholder="6-Digit PIN" required pattern="[0-9]{6}" maxlength="6" onkeyup="fetchPinCodeDetails(this.value)" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-bold tracking-widest transition">
@@ -844,6 +836,7 @@
             window.scrollTo(0,0);
         }
 
+        // --- SILENT AUTO REGISTER/LOGIN ON CHECKOUT ---
         function processAddressAndGoToPayment(event) {
             event.preventDefault();
             
@@ -917,6 +910,7 @@
             renderPaymentUI();
         }
 
+        // NEW: UPI ID visible in the UI
         function renderPaymentUI() {
             const isCOD = document.getElementById('cod').checked;
             const uiDiv = document.getElementById('paymentUI');
@@ -926,8 +920,9 @@
 
             if (!isCOD) {
                 uiDiv.innerHTML = `
-                    <p class="text-center text-sm text-gray-500 font-bold mb-2">Scan QR to pay Full Amount</p>
-                    <p class="text-center font-black text-2xl text-gray-900 mb-5">₹${totalAmount}</p>
+                    <p class="text-center text-sm text-gray-500 font-bold mb-1">Scan QR or Pay via UPI</p>
+                    <p class="text-center font-black text-2xl text-gray-900 mb-2">₹${totalAmount}</p>
+                    <p class="text-center text-xs font-bold text-gray-700 mb-4 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${paymentSettings.upi_id || 'Not available'}</span></p>
                     <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-36 h-36 border-4 border-gray-100 rounded-xl p-1 bg-white shadow-sm"></div>
                     <div class="bg-red-50 border border-red-200 p-3 rounded-lg mb-3">
                         <p class="text-[11px] text-center text-red-600 font-bold">⚠️ Please complete the payment now.</p>
@@ -937,10 +932,11 @@
             } else {
                 const tokenAmount = Math.round(totalAmount * 0.30);
                 uiDiv.innerHTML = `
-                    <div class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg mb-4 text-center shadow-sm">
+                    <div class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg mb-3 text-center shadow-sm">
                         <p class="text-[11px] text-yellow-700 font-bold">For C.O.D, 30% advance token is required.</p>
                         <p class="font-black text-xl text-gray-900 mt-1">Token: ₹${tokenAmount}</p>
                     </div>
+                    <p class="text-center text-xs font-bold text-gray-700 mb-3 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${paymentSettings.upi_id || 'Not available'}</span></p>
                     <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-36 h-36 border-4 border-gray-100 rounded-xl p-1 bg-white shadow-sm"></div>
                     <div class="bg-red-50 border border-red-200 p-3 rounded-lg mb-2">
                         <p class="text-[11px] text-center text-red-600 font-bold">⚠️ Please complete the token payment now.</p>
@@ -987,7 +983,7 @@
                             </a>
                         </div>
 
-                        <button onclick="showMyOrders()" class="mt-2 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white px-8 py-3.5 rounded-xl font-extrabold shadow-md transition-all w-full max-w-xs uppercase text-sm">View My Orders</button>
+                        <button onclick="requireAuth(() => showMyOrders())" class="mt-2 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white px-8 py-3.5 rounded-xl font-extrabold shadow-md transition-all w-full max-w-xs uppercase text-sm">View My Orders</button>
                         <button onclick="goHome()" class="mt-4 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 px-8 py-3.5 rounded-xl font-extrabold shadow-sm transition-all w-full max-w-xs uppercase text-sm">Continue Shopping</button>
                     </div>
                 `;
