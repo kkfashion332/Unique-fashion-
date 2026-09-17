@@ -21,7 +21,6 @@
             color: #fff;
             border-color: #eab308;
         }
-        /* Make inputs autofill look clean in light theme */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -33,7 +32,7 @@
         .strike-anim {
             position: relative;
             display: inline-block;
-            color: #878787; /* Gray color for old price */
+            color: #878787;
         }
         .strike-anim::after {
             content: '';
@@ -52,7 +51,7 @@
         }
 
         .discount-text {
-            color: #16a34a; /* Flipkart Green */
+            color: #16a34a;
             animation: pulseText 1.2s infinite alternate ease-in-out;
         }
         @keyframes pulseText {
@@ -114,9 +113,9 @@
     <div id="imageModalContainer"></div>
 
     <script>
-        // --- SOUND EFFECTS ---
-        const clickAudio = new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3');
-        const successAudio = new Audio('https://www.soundjay.com/misc/sounds/magic-chime-01.mp3');
+        // --- SOUND EFFECTS (FIXED URLS) ---
+        const clickAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3');
+        const successAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3');
 
         // Play tick sound on any click on the page
         document.addEventListener('click', function() {
@@ -204,7 +203,7 @@
             bottomNav.classList.add('hidden');
         }
 
-        // --- REALTIME DATABASE SYNC ---
+        // --- REALTIME DATABASE SYNC (CACHE REMOVED FOR IMMEDIATE UPDATES) ---
         async function initApp() {
             if (!db) {
                 appDiv.innerHTML = `
@@ -218,6 +217,7 @@
             }
 
             try {
+                // Fetch fresh data from Firebase EVERY TIME to ensure Admin updates show instantly
                 const setupCheck = await db.ref('settings/payment').once('value');
                 if (!setupCheck.exists()) await seedInitialData();
 
@@ -338,9 +338,9 @@
             if(displayProducts.length === 0) { prodHTML = `<div class="col-span-2 text-center text-gray-500 py-10 font-semibold w-full">No products found.</div>`; }
 
             let bannerHTML = banners.map(b => `
-                <div class="w-full flex-none snap-center px-4 pt-4 pb-2 box-border">
+                <div class="w-full min-w-full flex-shrink-0 snap-center px-3 pt-4 pb-2">
                     <a href="${b.target_link || '#'}" class="block w-full">
-                        <img src="${b.img}" class="w-full h-48 object-cover rounded-2xl shadow-md border border-gray-200">
+                        <img src="${b.img}" class="w-full h-48 object-cover rounded-2xl shadow-sm border border-gray-200">
                     </a>
                 </div>
             `).join('');
