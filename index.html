@@ -66,7 +66,7 @@
     <nav id="topNav" class="hidden bg-[#0a0a0a] py-2.5 px-3 flex justify-between items-center relative z-50 shadow-md border-b-[1.5px] border-yellow-500 rounded-b-[1.5rem]">
         <div class="flex items-center w-full justify-between relative px-1">
             <div class="flex-shrink-0 z-10">
-                <img id="secretLogo" src="logo.png.jpg" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="h-10 w-auto max-w-[80px] cursor-pointer object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]">
+                <img id="secretLogo" src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=UF&background=000&color=D4AF37'" alt="Unique Fashion" class="h-10 w-auto max-w-[80px] cursor-pointer object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]">
             </div>
             
             <div class="flex flex-col items-center justify-center cursor-pointer absolute left-1/2 transform -translate-x-1/2" onclick="goHome()">
@@ -95,7 +95,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
+    <!-- Bottom Navigation Bar (UPDATED: Added New Collection, Moved Orders, Removed Profile) -->
     <div id="bottomNav" class="hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-2 max-w-md mx-auto z-[60] flex justify-around items-center h-16 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
         <div onclick="showLikes()" class="flex flex-col items-center w-1/5 text-gray-400 hover:text-yellow-500 cursor-pointer transition-colors"><i class="fa-solid fa-heart text-[20px]"></i><span class="text-[9px] mt-1 font-bold">Likes</span></div>
         
@@ -113,16 +113,6 @@
     <div id="imageModalContainer"></div>
 
     <script>
-        // --- SOUND EFFECTS (FIXED URLS) ---
-        const clickAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3');
-        const successAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3');
-
-        // Play tick sound on any click on the page
-        document.addEventListener('click', function() {
-            clickAudio.currentTime = 0;
-            clickAudio.play().catch(e => {}); // Catch error to prevent console warnings if browser blocks autoplay initially
-        });
-
         // --- FIREBASE INITIALIZATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyASPAURqgDQWu-jQaj5_tPjuIhZNtWzUqo",
@@ -337,6 +327,7 @@
 
             if(displayProducts.length === 0) { prodHTML = `<div class="col-span-2 text-center text-gray-500 py-10 font-semibold w-full">No products found.</div>`; }
 
+            // UPDATED: Fixed Banner HTML to strictly show one banner at a time
             let bannerHTML = banners.map(b => `
                 <div class="w-full min-w-full flex-shrink-0 snap-center px-3 pt-4 pb-2">
                     <a href="${b.target_link || '#'}" class="block w-full">
@@ -347,7 +338,7 @@
 
             appDiv.innerHTML = `
                 <div id="homeView" class="fade-in bg-gray-50 min-h-screen pb-6">
-                    <div id="bannerSlider" class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar w-full relative box-border" style="scroll-behavior: smooth;">
+                    <div id="bannerSlider" class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar w-full" style="scroll-behavior: smooth;">
                         ${bannerHTML}
                     </div>
                     <div class="grid grid-cols-5 gap-y-4 gap-x-2 py-5 px-3 bg-white border-b border-gray-200 justify-items-center items-start shadow-sm mb-2 rounded-b-2xl">
@@ -715,6 +706,7 @@
             }
         }
 
+        // --- GUEST CHECKOUT (BUY NOW DIRECTLY) ---
         function handleBuyNow(id) {
             const product = products.find(p => p.id === id);
             const finalSize = getValidatedSize(product);
@@ -968,10 +960,6 @@
                 await db.ref('orders/' + newOrder.id).set(newOrder);
                 cart = []; localStorage.setItem('uf_cart', JSON.stringify(cart)); updateCartBadge();
                 
-                // Play Success Sound
-                successAudio.currentTime = 0;
-                successAudio.play().catch(e => {});
-
                 const waNum = paymentSettings.whatsapp;
                 const waText = encodeURIComponent(`Hello Unique Fashion, here is my payment screenshot for Order ID: ${newOrder.id}`);
 
