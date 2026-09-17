@@ -21,7 +21,6 @@
             color: #fff;
             border-color: #eab308;
         }
-        /* Make inputs autofill look clean in light theme */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -33,7 +32,7 @@
         .strike-anim {
             position: relative;
             display: inline-block;
-            color: #878787; /* Gray color for old price */
+            color: #878787;
         }
         .strike-anim::after {
             content: '';
@@ -52,7 +51,7 @@
         }
 
         .discount-text {
-            color: #16a34a; /* Flipkart Green */
+            color: #16a34a;
             animation: pulseText 1.2s infinite alternate ease-in-out;
         }
         @keyframes pulseText {
@@ -96,7 +95,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
+    <!-- Bottom Navigation Bar (UPDATED: Added New Collection, Moved Orders, Removed Profile) -->
     <div id="bottomNav" class="hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-2 max-w-md mx-auto z-[60] flex justify-around items-center h-16 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
         <div onclick="showLikes()" class="flex flex-col items-center w-1/5 text-gray-400 hover:text-yellow-500 cursor-pointer transition-colors"><i class="fa-solid fa-heart text-[20px]"></i><span class="text-[9px] mt-1 font-bold">Likes</span></div>
         
@@ -308,7 +307,6 @@
                     <div class="p-3 flex flex-col flex-grow border-t border-gray-100">
                         <h3 onclick="viewProduct('${item.id}')" class="text-sm font-bold truncate text-gray-800 cursor-pointer hover:text-yellow-600 transition tracking-tight">${item.name}</h3>
                         
-                        <!-- PRICE ORDER & ANIMATION (Flipkart Style) -->
                         <div class="mt-1.5 flex items-center gap-1.5">
                             <span class="discount-text text-[10px] font-extrabold flex items-center tracking-tight"><i class="fa-solid fa-arrow-down text-[8px] mr-0.5"></i>${discountVal}</span>
                             <span class="text-gray-400 font-bold text-[10px] strike-anim tracking-tight">₹${item.mrp}</span>
@@ -329,17 +327,18 @@
 
             if(displayProducts.length === 0) { prodHTML = `<div class="col-span-2 text-center text-gray-500 py-10 font-semibold w-full">No products found.</div>`; }
 
-            // NEW: Multiple banners with auto-swipe logic
+            // UPDATED: Fixed Banner HTML to strictly show one banner at a time
             let bannerHTML = banners.map(b => `
-                <a href="${b.target_link || '#'}" class="min-w-full flex-shrink-0 snap-center relative h-60 block">
-                    <img src="${b.img}" class="w-full h-full object-cover">
-                </a>
+                <div class="w-full min-w-full flex-shrink-0 snap-center px-3 pt-4 pb-2">
+                    <a href="${b.target_link || '#'}" class="block w-full">
+                        <img src="${b.img}" class="w-full h-48 object-cover rounded-2xl shadow-sm border border-gray-200">
+                    </a>
+                </div>
             `).join('');
 
             appDiv.innerHTML = `
                 <div id="homeView" class="fade-in bg-gray-50 min-h-screen pb-6">
-                    <!-- Banner Slider -->
-                    <div id="bannerSlider" class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar relative shadow-sm" style="scroll-behavior: smooth;">
+                    <div id="bannerSlider" class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar w-full" style="scroll-behavior: smooth;">
                         ${bannerHTML}
                     </div>
                     <div class="grid grid-cols-5 gap-y-4 gap-x-2 py-5 px-3 bg-white border-b border-gray-200 justify-items-center items-start shadow-sm mb-2 rounded-b-2xl">
@@ -359,7 +358,6 @@
             `;
             window.scrollTo(0,0);
 
-            // Banner Auto-swipe Initializer
             if(window.bannerScrollInterval) clearInterval(window.bannerScrollInterval);
             if(banners.length > 1) {
                 setTimeout(() => {
@@ -371,9 +369,9 @@
                         }
                         const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
                         if(slider.scrollLeft >= maxScrollLeft - 5) {
-                            slider.scrollTo({ left: 0, behavior: 'smooth' }); // Go back to start
+                            slider.scrollTo({ left: 0, behavior: 'smooth' });
                         } else {
-                            slider.scrollBy({ left: slider.clientWidth, behavior: 'smooth' }); // Scroll one image
+                            slider.scrollBy({ left: slider.clientWidth, behavior: 'smooth' });
                         }
                     }, 3000); 
                 }, 500);
@@ -810,7 +808,6 @@
                             <input type="text" id="custName" value="${currentUser ? currentUser.name : ''}" required placeholder="Full Name" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition">
                             <input type="tel" id="custPhone" value="${currentUser ? currentUser.phone : ''}" required placeholder="Phone Number" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-medium transition">
                             
-                            <!-- EDITABLE PINCODE & ADDRESS FIELDS -->
                             <div class="relative mt-2 border-t border-gray-100 pt-5">
                                 <label class="text-xs font-bold text-gray-500 mb-1 block">PIN CODE (Auto-fills below, or type manually)</label>
                                 <input type="number" id="custPincode" placeholder="6-Digit PIN" required pattern="[0-9]{6}" maxlength="6" onkeyup="fetchPinCodeDetails(this.value)" class="bg-white border border-gray-300 focus:border-yellow-500 outline-none text-gray-900 p-3.5 rounded-lg w-full text-sm font-bold tracking-widest transition">
@@ -836,7 +833,6 @@
             window.scrollTo(0,0);
         }
 
-        // --- SILENT AUTO REGISTER/LOGIN ON CHECKOUT ---
         function processAddressAndGoToPayment(event) {
             event.preventDefault();
             
@@ -983,7 +979,7 @@
                             </a>
                         </div>
 
-                        <button onclick="requireAuth(() => showMyOrders())" class="mt-2 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white px-8 py-3.5 rounded-xl font-extrabold shadow-md transition-all w-full max-w-xs uppercase text-sm">View My Orders</button>
+                        <button onclick="showMyOrders()" class="mt-2 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white px-8 py-3.5 rounded-xl font-extrabold shadow-md transition-all w-full max-w-xs uppercase text-sm">View My Orders</button>
                         <button onclick="goHome()" class="mt-4 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 px-8 py-3.5 rounded-xl font-extrabold shadow-sm transition-all w-full max-w-xs uppercase text-sm">Continue Shopping</button>
                     </div>
                 `;
