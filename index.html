@@ -95,7 +95,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar (UPDATED: Added New Collection, Moved Orders, Removed Profile) -->
+    <!-- Bottom Navigation Bar -->
     <div id="bottomNav" class="hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-2 max-w-md mx-auto z-[60] flex justify-around items-center h-16 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
         <div onclick="showLikes()" class="flex flex-col items-center w-1/5 text-gray-400 hover:text-yellow-500 cursor-pointer transition-colors"><i class="fa-solid fa-heart text-[20px]"></i><span class="text-[9px] mt-1 font-bold">Likes</span></div>
         
@@ -283,14 +283,17 @@
                 displayProducts = products.filter(p => p.category === activeCategory);
             }
 
-            let catHTML = categories.map(cat => `
-                <div onclick="filterCategory('${cat.name}')" class="flex flex-col items-center gap-1.5 cursor-pointer w-full">
+            let catHTML = categories.map(cat => {
+                // FIXED: Escaping single quotes in category names like "COMBO'S" to prevent javascript syntax errors
+                let safeCatName = cat.name.replace(/'/g, "\\'");
+                return `
+                <div onclick="filterCategory('${safeCatName}')" class="flex flex-col items-center gap-1.5 cursor-pointer w-full">
                     <div class="w-14 h-14 rounded-full overflow-hidden border-[2.5px] ${activeCategory === cat.name ? 'border-yellow-500 shadow-md scale-105' : 'border-gray-200'} transition-all mx-auto flex-shrink-0 bg-white">
                         <img src="${cat.img}" class="w-full h-full object-cover">
                     </div>
                     <span class="text-[9px] md:text-[10px] ${activeCategory === cat.name ? 'text-yellow-600 font-extrabold' : 'text-gray-600 font-bold'} text-center w-full uppercase break-words line-clamp-2 leading-tight">${cat.name}</span>
                 </div>
-            `).join('');
+            `}).join('');
             
             let prodHTML = displayProducts.map(item => {
                 const isLiked = likedItems.includes(item.id);
@@ -327,9 +330,8 @@
 
             if(displayProducts.length === 0) { prodHTML = `<div class="col-span-2 text-center text-gray-500 py-10 font-semibold w-full">No products found.</div>`; }
 
-            // UPDATED: Fixed Banner HTML to strictly show one banner at a time
             let bannerHTML = banners.map(b => `
-                <div class="w-full min-w-full flex-shrink-0 snap-center px-3 pt-4 pb-2">
+                <div class="w-full min-w-full flex-shrink-0 snap-center px-3 pt-4 pb-2 box-border">
                     <a href="${b.target_link || '#'}" class="block w-full">
                         <img src="${b.img}" class="w-full h-48 object-cover rounded-2xl shadow-sm border border-gray-200">
                     </a>
@@ -706,7 +708,6 @@
             }
         }
 
-        // --- GUEST CHECKOUT (BUY NOW DIRECTLY) ---
         function handleBuyNow(id) {
             const product = products.find(p => p.id === id);
             const finalSize = getValidatedSize(product);
@@ -960,6 +961,10 @@
                 await db.ref('orders/' + newOrder.id).set(newOrder);
                 cart = []; localStorage.setItem('uf_cart', JSON.stringify(cart)); updateCartBadge();
                 
+                // Play Success Sound
+                successAudio.currentTime = 0;
+                successAudio.play().catch(e => {});
+
                 const waNum = paymentSettings.whatsapp;
                 const waText = encodeURIComponent(`Hello Unique Fashion, here is my payment screenshot for Order ID: ${newOrder.id}`);
 
@@ -1073,3 +1078,782 @@
     </script>
 </body>
 </html>
+Mera ek idea aaya he bhai ki 
+Website me admin panel se ek aesa option dale ki 
+Jis order ka stutas jese mene cod order kiya .
+Ab mene payment kar diya aab admin uske stutes ko pending se hata kar success par kare .
+Tab user ko uske stauts me ek aesa  optoin mile " track order " ka user ko sirf iska order success hone par hi mile option track ka tab wo use track kare tab uski vhi website kule tracking vali aur tracking I'd usme phle se Dali ho .
+
+Matlab aab tu smagh mene ek option Diya admin me tracking I'd ka aur wo link bhi vha  dhalna ka option aana chaiye ki kis website par open karna he aur us website me wo Id aautomaticaaly fill rhani chiya .
+Jab admin order succes kare tab ye sbh dhalna pade order succes pe click karne ke bad ek popup open ho tab usme tracking ID or link dono pucha jaae or uske baad order succes ho 
+
+Aur user ko only tabhi thekega jab succes hoga ..varna only pending ka optoin thikega ..
+
+Aur han me is option ko kabhi bhi hata saku or kabhi bhi lga sau aesa opotin hona chiya .
+
+
+Aur baak sab pichle Wala same rhan chaiye html code me . 
+Aur me .py code de rha hu tu theek kar dena dono ka is isme dono ko theek kar jaldi se html iske badh de rha hy phle padh le dono .
+
+
+.py ka code lo
+
+# -*- coding: utf-8 -*-
+"""
+Unique Fashion - Admin Panel (Flask + Firebase Realtime Database)
+Green & White Theme | Orders / Products / Categories / Banners / Users / Settings
+"""
+
+import os
+import json
+import traceback
+from datetime import datetime
+
+import firebase_admin
+from firebase_admin import credentials, db
+from flask import Flask, render_template_string, request, redirect, url_for, flash
+
+# ----------------------------------------------------------------------------
+# CONFIG
+# ----------------------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Service account JSON ka path (PythonAnywhere par is naam se file upload karni hai)
+CRED_PATH = os.environ.get(
+    "FIREBASE_CRED_PATH",
+    os.path.join(os.path.expanduser("~"), "serviceAccountKey.json"),
+)
+
+# Unique Fashion Firebase URL
+DB_URL = os.environ.get(
+    "FIREBASE_DB_URL",
+    "https://ai-calling-agent-7caac-default-rtdb.firebaseio.com",
+)
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "unique-fashion-admin-secret-key")
+
+# ----------------------------------------------------------------------------
+# FIREBASE INIT
+# ----------------------------------------------------------------------------
+FIREBASE_ERROR = None
+
+def init_firebase():
+    global FIREBASE_ERROR
+    try:
+        if not firebase_admin._apps:
+            if not os.path.exists(CRED_PATH):
+                raise FileNotFoundError(
+                    "serviceAccountKey.json file nahi mili: %s (Kripya JSON file upload karein)" % CRED_PATH
+                )
+            cred = credentials.Certificate(CRED_PATH)
+            firebase_admin.initialize_app(cred, {"databaseURL": DB_URL})
+        FIREBASE_ERROR = None
+        return True
+    except Exception as e:
+        FIREBASE_ERROR = "%s: %s" % (type(e).__name__, e)
+        traceback.print_exc()
+        return False
+
+init_firebase()
+
+def ref(path):
+    if not firebase_admin._apps:
+        if not init_firebase():
+            raise RuntimeError(FIREBASE_ERROR or "Firebase init failed")
+    return db.reference(path)
+
+def as_list(node_path, sort_desc=False):
+    """RTDB dict ko list of dicts (key ke saath) me badalta hai."""
+    try:
+        data = ref(node_path).get() or {}
+    except Exception as e:
+        print("READ ERROR", node_path, e)
+        return []
+    if isinstance(data, list):
+        data = {str(i): v for i, v in enumerate(data) if v}
+    items = []
+    for k, v in data.items():
+        if not isinstance(v, dict):
+            continue
+        row = dict(v)
+        row["key"] = k
+        items.append(row)
+    items.sort(key=lambda r: str(r.get("key", "")), reverse=sort_desc)
+    return items
+
+def num(value, default=0):
+    try:
+        return float(str(value).replace(",", "").strip())
+    except Exception:
+        return default
+
+def money(value):
+    n = num(value)
+    if n == int(n):
+        return str(int(n))
+    return "%.2f" % n
+
+# ----------------------------------------------------------------------------
+# TEMPLATE (GREEN & WHITE THEME)
+# ----------------------------------------------------------------------------
+TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unique Fashion - Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+  :root {
+    --primary: #16a34a; /* Green */
+    --primary-dark: #15803d;
+    --primary-light: #dcfce7;
+    --bg: #f9fafb; /* Light Gray/White Background */
+    --card: #ffffff;
+    --line: #e5e7eb;
+    --ink: #111827;
+    --ink-soft: #6b7280;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --ok: #16a34a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Manrope', system-ui, sans-serif; }
+  header { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: #fff; padding: 20px 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+  header p { margin: 4px 0 0; font-size: 12px; color: #bbf7d0; font-weight: 500; }
+  
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  
+  .tabs { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0; position: sticky; top: 0; background: var(--bg); z-index: 5; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { flex: 0 0 auto; text-decoration: none; color: var(--ink-soft); background: #fff; border: 1px solid var(--line); padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .tabs a:hover { border-color: var(--primary); color: var(--primary); }
+  .tabs a.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 4px 6px rgba(22,163,74,0.3); }
+  
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  .stat b { display: block; font-size: 24px; font-weight: 800; color: var(--primary); }
+  .stat span { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+  
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .card h2 { font-size: 18px; margin: 0 0 14px; font-weight: 800; border-bottom: 2px solid var(--primary-light); padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin: 10px 0 4px; text-transform: uppercase; }
+  input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-family: inherit; font-size: 14px; background: #fff; color: var(--ink); transition: border 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-light); }
+  textarea { min-height: 80px; resize: vertical; }
+  
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 14px; padding: 12px 20px; border: 0; border-radius: 10px; cursor: pointer; background: var(--primary); color: #fff; font-weight: 800; font-size: 14px; text-decoration: none; transition: transform 0.1s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(22,163,74,0.2); }
+  .btn:active { transform: scale(0.97); }
+  .btn.sm { padding: 8px 14px; font-size: 12px; margin: 0; }
+  .btn.del { background: var(--danger-light); color: var(--danger); box-shadow: none; }
+  .btn.accept { background: var(--primary); color: #fff; }
+  .btn.reject { background: var(--danger); color: #fff; }
+  .btn.ghost { background: var(--line); color: var(--ink); box-shadow: none; }
+  
+  .btn-col { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; min-width: 100px; }
+  .row { display: flex; gap: 14px; align-items: center; border-top: 1px solid var(--line); padding: 14px 0; }
+  .row:first-of-type { border-top: 0; }
+  
+  .flash { padding: 12px 16px; border-radius: 10px; margin-bottom: 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .flash.ok { background: var(--primary-light); color: var(--primary-dark); border: 1px solid #bbf7d0; }
+  .flash.err { background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
+  
+  .empty { color: var(--ink-soft); font-size: 14px; padding: 20px 0; text-align: center; font-weight: 600; background: var(--bg); border-radius: 10px; border: 1px dashed var(--line); }
+  .pill { display: inline-block; background: var(--primary-light); color: var(--primary-dark); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+  
+  /* User Search Input Custom Style */
+  .search-box { position: relative; margin-bottom: 15px; }
+  .search-box i { position: absolute; left: 14px; top: 14px; color: var(--ink-soft); }
+  .search-box input { pl-10; padding-left: 40px; border-radius: 999px; }
+
+  footer { text-align: center; color: var(--ink-soft); font-size: 12px; font-weight: 600; padding: 24px; border-top: 1px solid var(--line); margin-top: 20px; }
+  
+  @media(max-width: 480px){ 
+    .row { flex-wrap: wrap; } 
+    .btn-col { flex-direction: row; width: 100%; } 
+    .btn-col .btn { flex: 1; } 
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>UNIQUE FASHION</h1>
+  <p>Admin Dashboard &middot; Realtime Connected</p>
+</header>
+
+<div class="wrap">
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}
+      <div class="flash {{ 'err' if cat == 'error' else 'ok' }}">
+        <i class="fa-solid {{ 'fa-circle-exclamation' if cat == 'error' else 'fa-circle-check' }}"></i> {{ m }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if fb_error %}
+    <div class="flash err"><i class="fa-solid fa-triangle-exclamation"></i> Firebase Connect Nahi Hua &rarr; {{ fb_error }}. Kripya serviceAccountKey.json file check karein!</div>
+  {% endif %}
+
+  <div class="stats">
+    <div class="stat"><b>{{ orders|length }}</b><span>Orders</span></div>
+    <div class="stat"><b>{{ products|length }}</b><span>Products</span></div>
+    <div class="stat"><b>{{ users|length }}</b><span>Users</span></div>
+    <div class="stat"><b>&#8377;{{ revenue }}</b><span>Total Revenue</span></div>
+  </div>
+
+  <nav class="tabs">
+    {% for key, label in tabs %}
+      <a href="{{ url_for('index', tab=key) }}" class="{{ 'active' if tab == key else '' }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <!-- ORDERS TAB -->
+  {% if tab == 'orders' %}
+  <div class="card">
+    <h2><i class="fa-solid fa-box"></i> Manage Orders ({{ orders|length }})</h2>
+    {% if not orders %}<div class="empty">Koi order nahi hai.</div>{% endif %}
+    {% for o in orders %}
+      <div class="row" style="align-items: flex-start; flex-wrap:wrap;">
+        <div style="flex:1; min-width:250px;">
+          
+          <div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items:center;">
+            <b style="font-size: 15px;">Order <span style="font-size:12px; color:var(--ink-soft); font-weight:600;">#{{ o.id or o.key }}</span></b>
+            <span class="pill" style="background:#f3f4f6; color:var(--ink);">&#8377;{{ o._price }}</span>
+          </div>
+
+          <!-- Multi-item Display logic -->
+          {% if o.get('items') %}
+            <div style="margin-bottom:12px; background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--line);">
+              {% for item in o.get('items') %}
+                <div style="display:flex; gap:12px; margin-bottom:{% if loop.last %}0{% else %}10px{% endif %}; align-items:center;">
+                  <img src="{{ item.get('img') or placeholder }}" style="width:50px; height:50px; border-radius:8px; object-fit:cover; border:1px solid var(--line);">
+                  <div style="line-height:1.4;">
+                    <b style="font-size:13px; color:var(--ink);">{{ item.get('name') }}</b><br>
+                    <small style="color:var(--primary); font-weight:700; font-size:11px;">Size: {{ item.get('size') }} {% if item.get('price') %}&middot; &#8377;{{ item.get('price') }}{% endif %}</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+             <!-- Old fallback -->
+             <div style="display:flex; gap:12px; margin-bottom:12px; background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--line); align-items:center;">
+                <img src="{{ o.get('img') or placeholder }}" style="width:50px; height:50px; border-radius:8px; object-fit:cover; border:1px solid var(--line);">
+                <div style="line-height:1.4;">
+                  <b style="font-size:13px;">{{ o.get('product_name') or 'Product' }}</b>
+                </div>
+              </div>
+          {% endif %}
+
+          <div style="font-size:13px; color:var(--ink-soft); line-height:1.7;">
+            <b>Customer:</b> <span style="color:var(--ink); font-weight:600;">{{ o.get('name', '-') }} ({{ o.get('phone', '-') }})</span><br>
+            <b>Address:</b> <span style="color:var(--ink);">{{ o.get('address', '-') }}</span><br>
+            <b>Payment:</b> <span style="color:var(--ink); font-weight:700;">{{ o.get('payment', '-') }}</span> &middot; {{ o.get('date', '-') }}<br>
+            <b>Status:</b> <strong style="color: {% if o.get('status') == 'Confirmed' %}var(--ok){% elif o.get('status') == 'Rejected' %}var(--danger){% else %}#d97706{% endif %}">
+              {{ o.get('status', 'Pending Verification') }}
+            </strong>
+          </div>
+        </div>
+        
+        <div class="btn-col">
+          {% if o.get('status') != 'Confirmed' %}
+          <form method="post" action="{{ url_for('update_order_status') }}" style="margin:0;">
+            <input type="hidden" name="key" value="{{ o.key }}">
+            <input type="hidden" name="status" value="Confirmed">
+            <button class="btn sm accept" type="submit" style="width:100%"><i class="fa-solid fa-check"></i> Accept</button>
+          </form>
+          {% endif %}
+          
+          {% if o.get('status') != 'Rejected' %}
+          <form method="post" action="{{ url_for('update_order_status') }}" style="margin:0;" onsubmit="return confirm('Order reject karna hai?')">
+            <input type="hidden" name="key" value="{{ o.key }}">
+            <input type="hidden" name="status" value="Rejected">
+            <button class="btn sm reject" type="submit" style="width:100%"><i class="fa-solid fa-xmark"></i> Reject</button>
+          </form>
+          {% endif %}
+
+          <form method="post" action="{{ url_for('delete_item') }}" style="margin:0;" onsubmit="return confirm('Order permanently delete karna hai?')">
+            <input type="hidden" name="node" value="orders">
+            <input type="hidden" name="key" value="{{ o.key }}">
+            <input type="hidden" name="tab" value="orders">
+            <button class="btn sm del" type="submit" style="width:100%"><i class="fa-solid fa-trash"></i> Delete</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- USERS & MESSAGES TAB -->
+  {% if tab == 'users' %}
+  <div class="card">
+    <h2><i class="fa-solid fa-users"></i> Users & Marketing ({{ users|length }})</h2>
+    <p style="font-size:12px; color:var(--ink-soft); margin-bottom:15px;">Aap yahan se users dhoondh sakte hain aur WhatsApp pe unko discount offers bhej sakte hain.</p>
+    
+    <div class="search-box">
+      <i class="fa-solid fa-search"></i>
+      <input type="text" id="userSearch" placeholder="Search user by name or phone number..." onkeyup="filterUsers()">
+    </div>
+    
+    <div style="display:flex; gap:10px; margin-bottom: 20px;">
+        <button class="btn sm" onclick="copyAllNumbers()"><i class="fa-regular fa-copy"></i> Copy All Numbers</button>
+        <button class="btn sm ghost" onclick="alert('Pehle Numbers copy karein, phir WhatsApp me jaakar Naya Broadcast list banayein aur usme paste kar dein.')"><i class="fa-solid fa-circle-info"></i> How to Broadcast?</button>
+    </div>
+
+    <div id="userList">
+      {% if not users %}<div class="empty">Koi user registered nahi hai.</div>{% endif %}
+      {% for u in users %}
+        <div class="row user-row" data-name="{{ u.get('name', '') | lower }}" data-phone="{{ u.get('phone', '') }}">
+            <div style="width: 40px; height: 40px; background: var(--primary-light); color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">
+                {{ u.get('name', 'U')[0]|upper }}
+            </div>
+            <div style="flex:1; min-width:0;">
+                <b style="display:block; font-size:14px; color:var(--ink);">{{ u.get('name', 'Guest / No Name') }}</b>
+                <small style="color:var(--ink-soft); font-weight:600; font-size:12px;">{{ u.get('phone', 'No Phone') }}</small>
+            </div>
+            <a class="btn sm" style="background:#25D366; color:#fff;" href="https://wa.me/91{{ u.get('phone', '')[-10:] }}" target="_blank"><i class="fa-brands fa-whatsapp"></i> Message</a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <script>
+    function filterUsers() {
+        let query = document.getElementById('userSearch').value.toLowerCase();
+        let rows = document.querySelectorAll('.user-row');
+        rows.forEach(row => {
+            let name = row.getAttribute('data-name');
+            let phone = row.getAttribute('data-phone');
+            if(name.includes(query) || phone.includes(query)) {
+                row.style.display = 'flex';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function copyAllNumbers() {
+        // Collect all phone numbers (last 10 digits) and separate by comma
+        let numbers = [
+            {% for u in users %}
+                '{{ u.get("phone", "") }}',
+            {% endfor %}
+        ];
+        
+        let cleanNumbers = numbers.filter(n => n && n.length >= 10).map(n => n.slice(-10)).join(', ');
+        
+        if(cleanNumbers) {
+            navigator.clipboard.writeText(cleanNumbers).then(() => {
+                alert("Saare numbers copy ho gaye hain! Ab aap WhatsApp me naya broadcast banakar sabko ek sath message / offer bhej sakte hain.");
+            }).catch(err => {
+                alert("Copy nahi ho paya, manually copy karein.");
+            });
+        } else {
+            alert("Copy karne ke liye koi number nahi mila.");
+        }
+    }
+  </script>
+  {% endif %}
+
+  <!-- PRODUCTS -->
+  {% if tab == 'products' %}
+  <div class="card">
+    <h2><i class="fa-solid {{ 'fa-pen-to-square' if edit_product else 'fa-plus' }}"></i> {{ 'Edit Product' if edit_product else 'Add Product' }}</h2>
+    <form method="post" action="{{ url_for('save_product') }}">
+      <input type="hidden" name="key" value="{{ edit_product.key if edit_product else '' }}">
+      <div class="grid2">
+        <div>
+          <label>Product Name *</label>
+          <input name="name" required value="{{ edit_product.name if edit_product else '' }}">
+        </div>
+        <div>
+          <label>Category</label>
+          <select name="category">
+            <option value="">-- select --</option>
+            {% for c in categories %}
+              <option value="{{ c.name }}" {{ 'selected' if edit_product and edit_product.category == c.name else '' }}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Price (&#8377;) *</label>
+          <input name="price" type="number" step="1" min="0" required value="{{ edit_product.price if edit_product else '' }}">
+        </div>
+        <div>
+          <label>MRP (&#8377;)</label>
+          <input name="mrp" type="number" step="1" min="0" value="{{ edit_product.mrp if edit_product else '' }}">
+        </div>
+        <div>
+          <label>Shirt Sizes (comma separated)</label>
+          <input name="shirtSizes" placeholder="S, M, L, XL" value="{{ edit_product.shirtSizes if edit_product else '' }}">
+        </div>
+        <div>
+          <label>Jeans Sizes (comma separated)</label>
+          <input name="jeansSizes" placeholder="28, 30, 32, 34" value="{{ edit_product.jeansSizes if edit_product else '' }}">
+        </div>
+      </div>
+      <label>Image URL</label>
+      <input name="img" placeholder="https://..." value="{{ edit_product.img if edit_product else '' }}">
+      <div style="display:flex; gap:10px;">
+          <button class="btn" type="submit">{{ 'Update Product' if edit_product else 'Save New Product' }}</button>
+          {% if edit_product %}
+            <a class="btn ghost" href="{{ url_for('index', tab='products') }}">Cancel</a>
+          {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2><i class="fa-solid fa-shirt"></i> All Products ({{ products|length }})</h2>
+    {% if not products %}<div class="empty">Koi product add nahi kiya gaya.</div>{% endif %}
+    {% for p in products %}
+      <div class="row">
+        <img src="{{ p.get('img') or placeholder }}" alt="{{ p.get('name') or 'product' }}" style="width:60px; height:60px; border-radius:10px; object-fit:cover; flex:0 0 auto; border:1px solid var(--line);">
+        <div style="flex:1; min-width:0;">
+          <b style="display:block; font-size:14px;">{{ p.get('name') }} &nbsp;<span class="pill">{{ p.get('category') or 'Uncategorized' }}</span></b>
+          <small style="display:block; color:var(--ink-soft); font-size:12px; line-height:1.5; margin-top:2px;">
+            <span style="color:var(--ink); font-weight:700;">&#8377;{{ p._price }}</span>{% if p._mrp %} <span style="text-decoration:line-through; color:#9ca3af;">&#8377;{{ p._mrp }}</span>{% endif %}{% if p.get('discount') %} &middot; <span style="color:var(--primary); font-weight:700;">{{ p.get('discount') }}</span>{% endif %}<br>
+            {% if p.get('shirtSizes') %}Top: {{ p.get('shirtSizes') }}{% endif %}
+            {% if p.get('jeansSizes') %} &middot; Bottom: {{ p.get('jeansSizes') }}{% endif %}
+          </small>
+        </div>
+        <a class="btn sm ghost" href="{{ url_for('index', tab='products', edit=p.key) }}"><i class="fa-solid fa-pen"></i></a>
+        <form method="post" action="{{ url_for('delete_item') }}" onsubmit="return confirm('Product permanently delete karna hai?')" style="margin:0;">
+          <input type="hidden" name="node" value="products">
+          <input type="hidden" name="key" value="{{ p.key }}">
+          <input type="hidden" name="tab" value="products">
+          <button class="btn sm del" type="submit"><i class="fa-solid fa-trash"></i></button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- CATEGORIES -->
+  {% if tab == 'categories' %}
+  <div class="card">
+    <h2><i class="fa-solid fa-layer-group"></i> Add Category</h2>
+    <form method="post" action="{{ url_for('add_category') }}">
+      <div class="grid2">
+        <div>
+          <label>Category Name *</label>
+          <input name="name" required placeholder="Ex: T-Shirts">
+        </div>
+        <div>
+          <label>Image URL</label>
+          <input name="img" placeholder="https://...">
+        </div>
+      </div>
+      <button class="btn" type="submit">Save Category</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>All Categories ({{ categories|length }})</h2>
+    {% if not categories %}<div class="empty">Koi category add nahi ki gayi.</div>{% endif %}
+    {% for c in categories %}
+      <div class="row">
+        <img src="{{ c.get('img') or placeholder }}" style="width:50px; height:50px; border-radius:10px; object-fit:cover; flex:0 0 auto; border:1px solid var(--line);">
+        <div style="flex:1; min-width:0;">
+            <b style="display:block; font-size:15px; color:var(--ink);">{{ c.get('name') }}</b>
+        </div>
+        <form method="post" action="{{ url_for('delete_item') }}" onsubmit="return confirm('Category delete karni hai?')" style="margin:0;">
+          <input type="hidden" name="node" value="categories">
+          <input type="hidden" name="key" value="{{ c.key }}">
+          <input type="hidden" name="tab" value="categories">
+          <button class="btn sm del" type="submit"><i class="fa-solid fa-trash"></i></button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- BANNERS -->
+  {% if tab == 'banners' %}
+  <div class="card">
+    <h2><i class="fa-regular fa-image"></i> Add Banner(s)</h2>
+    <form method="post" action="{{ url_for('add_banner') }}">
+      <label>Image URL(s) &mdash; har line pe ek nayi URL dalein</label>
+      <textarea name="img" required placeholder="https://image-1.jpg&#10;https://image-2.jpg"></textarea>
+      <label>Target Link (optional)</label>
+      <input name="target_link" placeholder="Ex: category name ya link">
+      <button class="btn" type="submit">Upload Banner(s)</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Active Banners ({{ banners|length }})</h2>
+    {% if not banners %}<div class="empty">Koi banner add nahi kiya gaya.</div>{% endif %}
+    {% for b in banners %}
+      <div class="row">
+        <img src="{{ b.get('img') or placeholder }}" style="width:100px; height:50px; border-radius:8px; object-fit:cover; flex:0 0 auto; border:1px solid var(--line);">
+        <div style="flex:1; min-width:0;">
+            <small style="display:block; color:var(--ink-soft); font-size:12px; word-break:break-all;">Target: {{ b.get('target_link') or 'No link' }}</small>
+        </div>
+        <form method="post" action="{{ url_for('delete_item') }}" onsubmit="return confirm('Banner delete karna hai?')" style="margin:0;">
+          <input type="hidden" name="node" value="banners">
+          <input type="hidden" name="key" value="{{ b.key }}">
+          <input type="hidden" name="tab" value="banners">
+          <button class="btn sm del" type="submit"><i class="fa-solid fa-trash"></i></button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- SETTINGS -->
+  {% if tab == 'settings' %}
+  <div class="card">
+    <h2><i class="fa-solid fa-gear"></i> App Settings</h2>
+    <form method="post" action="{{ url_for('save_settings') }}">
+      <label>UPI ID (For Payments)</label>
+      <input name="upi_id" value="{{ settings.get('upi_id', '') }}" placeholder="name@upi">
+      
+      <label>QR Image URL (Payment QR Code)</label>
+      <input name="qr_url" value="{{ settings.get('qr_url', '') }}" placeholder="https://...">
+      
+      <label>WhatsApp Support Number (Country code '91' lagakar)</label>
+      <input name="whatsapp" value="{{ settings.get('whatsapp', '') }}" placeholder="919999999999">
+      
+      <button class="btn" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
+    </form>
+    {% if settings.get('qr_url') %}
+      <div class="row" style="margin-top: 20px;">
+         <img src="{{ settings.get('qr_url') }}" alt="QR" style="width:80px; height:80px; border-radius:10px; object-fit:cover; flex:0 0 auto; border:2px solid var(--primary-light);">
+         <div style="flex:1; min-width:0;">
+            <b style="display:block; font-size:14px; color:var(--primary);">Active QR Code</b>
+            <small style="display:block; color:var(--ink-soft); font-size:13px; font-weight:700;">{{ settings.get('upi_id', 'No UPI set') }}</small>
+         </div>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+<footer>Unique Fashion Admin &middot; Connected &middot; {{ now }}</footer>
+</body>
+</html>
+"""
+
+# TABS DEFINITION
+TABS = [
+    ("orders", "Orders"),
+    ("products", "Products"),
+    ("categories", "Categories"),
+    ("banners", "Banners"),
+    ("users", "Users & MSG"),
+    ("settings", "Settings"),
+]
+
+PLACEHOLDER = "https://placehold.co/120x120/f9fafb/9ca3af?text=No+Image"
+
+# ----------------------------------------------------------------------------
+# ROUTES
+# ----------------------------------------------------------------------------
+@app.route("/")
+def index():
+    tab = request.args.get("tab", "orders")
+    if tab not in dict(TABS):
+        tab = "orders"
+
+    orders = as_list("orders", sort_desc=True)
+    products = as_list("products")
+    categories = as_list("categories")
+    banners = as_list("banners")
+    users = as_list("users", sort_desc=True) # Fetched real-time users data
+
+    try:
+        settings = ref("settings/payment").get() or {}
+    except Exception:
+        settings = {}
+    if not isinstance(settings, dict):
+        settings = {}
+
+    for o in orders:
+        o["_price"] = money(o.get("price"))
+        
+        # --- FIX FOR FIREBASE ARRAY/DICT CONVERSION ISSUE ---
+        items_val = o.get("items")
+        if isinstance(items_val, dict):
+            parsed_items = []
+            for k, v in items_val.items():
+                if isinstance(v, dict):
+                    parsed_items.append(v)
+            o["items"] = parsed_items
+        elif not isinstance(items_val, list):
+            o["items"] = None
+
+    for p in products:
+        p["_price"] = money(p.get("price"))
+        p["_mrp"] = money(p.get("mrp")) if num(p.get("mrp")) else ""
+
+    revenue = money(sum(num(o.get("price")) for o in orders))
+
+    edit_key = request.args.get("edit")
+    edit_product = None
+    if edit_key:
+        for p in products:
+            if p["key"] == edit_key:
+                edit_product = p
+                break
+
+    return render_template_string(
+        TEMPLATE,
+        tab=tab,
+        tabs=TABS,
+        orders=orders,
+        products=products,
+        categories=categories,
+        banners=banners,
+        users=users,
+        settings=settings,
+        revenue=revenue,
+        edit_product=edit_product,
+        placeholder=PLACEHOLDER,
+        db_url=DB_URL,
+        fb_error=FIREBASE_ERROR,
+        now=datetime.now().strftime("%d %b %Y, %I:%M %p"),
+    )
+
+@app.route("/product/save", methods=["POST"])
+def save_product():
+    f = request.form
+    name = (f.get("name") or "").strip()
+    if not name:
+        flash("Product name is required.", "error")
+        return redirect(url_for("index", tab="products"))
+
+    price = num(f.get("price"))
+    mrp = num(f.get("mrp"))
+    discount = ""
+    if mrp > price > 0:
+        discount = "%d%% OFF" % round((mrp - price) * 100.0 / mrp)
+
+    data = {
+        "name": name,
+        "price": price,
+        "mrp": mrp,
+        "discount": discount,
+        "category": (f.get("category") or "").strip(),
+        "img": (f.get("img") or "").strip(),
+        "shirtSizes": (f.get("shirtSizes") or "").strip(),
+        "jeansSizes": (f.get("jeansSizes") or "").strip(),
+    }
+
+    key = (f.get("key") or "").strip()
+    try:
+        if key:
+            ref("products/%s" % key).update(data)
+            flash("Product successfully updated.", "ok")
+        else:
+            new_ref = ref("products").push(data)
+            new_ref.update({"id": new_ref.key})
+            flash("New product added successfully.", "ok")
+    except Exception as e:
+        flash("Save failed: %s" % e, "error")
+
+    return redirect(url_for("index", tab="products"))
+
+@app.route("/category/add", methods=["POST"])
+def add_category():
+    name = (request.form.get("name") or "").strip()
+    img = (request.form.get("img") or "").strip()
+    if not name:
+        flash("Category name is required.", "error")
+        return redirect(url_for("index", tab="categories"))
+    try:
+        new_ref = ref("categories").push({"name": name, "img": img})
+        new_ref.update({"id": new_ref.key})
+        flash("Category added successfully.", "ok")
+    except Exception as e:
+        flash("Category add failed: %s" % e, "error")
+    return redirect(url_for("index", tab="categories"))
+
+@app.route("/banner/add", methods=["POST"])
+def add_banner():
+    raw = request.form.get("img") or ""
+    target = (request.form.get("target_link") or "").strip()
+
+    urls = []
+    for chunk in raw.replace(",", "\n").splitlines():
+        u = chunk.strip()
+        if u:
+            urls.append(u)
+
+    if not urls:
+        flash("Please enter at least one image URL.", "error")
+        return redirect(url_for("index", tab="banners"))
+
+    added = 0
+    try:
+        for u in urls:
+            new_ref = ref("banners").push({"img": u, "target_link": target})
+            new_ref.update({"id": new_ref.key})
+            added += 1
+        flash("%d banner(s) added successfully." % added, "ok")
+    except Exception as e:
+        flash("Banner add failed (%d added): %s" % (added, e), "error")
+    return redirect(url_for("index", tab="banners"))
+
+@app.route("/settings/save", methods=["POST"])
+def save_settings():
+    data = {
+        "upi_id": (request.form.get("upi_id") or "").strip(),
+        "qr_url": (request.form.get("qr_url") or "").strip(),
+        "whatsapp": (request.form.get("whatsapp") or "").strip(),
+    }
+    try:
+        ref("settings/payment").set(data)
+        flash("Settings saved successfully.", "ok")
+    except Exception as e:
+        flash("Settings save failed: %s" % e, "error")
+    return redirect(url_for("index", tab="settings"))
+
+# --- ROUTE: ORDER STATUS UPDATE ---
+@app.route("/order/status", methods=["POST"])
+def update_order_status():
+    key = request.form.get("key")
+    status = request.form.get("status")
+    if not key or not status:
+        flash("Invalid request.", "error")
+        return redirect(url_for("index", tab="orders"))
+    try:
+        ref("orders/%s" % key).update({"status": status})
+        flash(f"Order status updated to '{status}'.", "ok")
+    except Exception as e:
+        flash("Status update failed: %s" % e, "error")
+    return redirect(url_for("index", tab="orders"))
+
+@app.route("/delete", methods=["POST"])
+def delete_item():
+    node = request.form.get("node")
+    key = (request.form.get("key") or "").strip()
+    tab = request.form.get("tab") or "orders"
+    if node not in ("orders", "products", "categories", "banners") or not key:
+        flash("Invalid delete request.", "error")
+        return redirect(url_for("index", tab=tab))
+    try:
+        ref("%s/%s" % (node, key)).delete()
+        flash("Item deleted successfully.", "ok")
+    except Exception as e:
+        flash("Delete failed: %s" % e, "error")
+    return redirect(url_for("index", tab=tab))
+
+@app.route("/health")
+def health():
+    try:
+        ref("/").get()
+        return {"firebase": "ok", "db": DB_URL}
+    except Exception as e:
+        return {"firebase": "error", "detail": str(e)}, 500
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
