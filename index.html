@@ -78,7 +78,11 @@
                 </div>
             </div>
 
+            <!-- FIX: Download Icon Added Next to Cart -->
             <div class="flex items-center gap-4 text-white text-[18px] flex-shrink-0 z-10">
+                <a href="https://drive.google.com/file/d/19aXGs4Ka9KkSOlyom6qbCN1zvaFqsn39/view?usp=drivesdk" target="_blank" class="relative cursor-pointer hover:text-yellow-500 transition drop-shadow-md">
+                    <i class="fa-solid fa-download"></i>
+                </a>
                 <div class="relative cursor-pointer hover:text-yellow-500 transition drop-shadow-md" onclick="showCart()">
                     <i class="fa-solid fa-cart-shopping"></i>
                     <span id="topCartBadge" class="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full hidden border border-black shadow-sm">0</span>
@@ -284,7 +288,6 @@
             }
 
             let catHTML = categories.map(cat => {
-                // FIXED: Escaping single quotes in category names like "COMBO'S" to prevent javascript syntax errors
                 let safeCatName = cat.name.replace(/'/g, "\\'");
                 return `
                 <div onclick="filterCategory('${safeCatName}')" class="flex flex-col items-center gap-1.5 cursor-pointer w-full">
@@ -961,10 +964,6 @@
                 await db.ref('orders/' + newOrder.id).set(newOrder);
                 cart = []; localStorage.setItem('uf_cart', JSON.stringify(cart)); updateCartBadge();
                 
-                // Play Success Sound
-                successAudio.currentTime = 0;
-                successAudio.play().catch(e => {});
-
                 const waNum = paymentSettings.whatsapp;
                 const waText = encodeURIComponent(`Hello Unique Fashion, here is my payment screenshot for Order ID: ${newOrder.id}`);
 
@@ -1052,6 +1051,31 @@
                             itemsHTML = `<div class="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-100 mt-3"><img src="${order.img}" class="w-12 h-12 object-cover rounded border border-gray-200 bg-white"><div class="flex-grow overflow-hidden"><p class="font-bold text-gray-800 text-[11px] leading-tight break-words">${order.product_name}</p></div></div>`;
                         }
 
+                        // NEW: Tracking ID & Tracking Link Logic for Customers
+                        let trackingHTML = "";
+                        if (order.status === "Confirmed") {
+                            if (order.tracking_id && order.tracking_link) {
+                                trackingHTML = `
+                                    <div class="mt-3 bg-blue-50 border border-blue-200 p-3 rounded-lg flex flex-col gap-2 shadow-sm">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[10px] font-extrabold text-blue-800 uppercase tracking-wide"><i class="fa-solid fa-truck-fast mr-1"></i> Order Dispatched</span>
+                                            <span class="text-[11px] font-bold text-gray-800 bg-white px-2 py-0.5 rounded border border-blue-100 shadow-sm uppercase">ID: ${order.tracking_id}</span>
+                                        </div>
+                                        <a href="${order.tracking_link}" target="_blank" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 rounded-md text-[10px] text-center shadow-md transition transform active:scale-95 flex items-center justify-center gap-1">
+                                            <i class="fa-solid fa-location-crosshairs"></i> TRACK MY ORDER
+                                        </a>
+                                    </div>
+                                `;
+                            } else {
+                                trackingHTML = `
+                                    <div class="mt-3 bg-gray-100 border border-gray-200 p-2.5 rounded-lg flex items-center justify-between shadow-sm">
+                                        <span class="text-[10px] font-bold text-gray-600"><i class="fa-solid fa-box-packing mr-1"></i> Packing in progress...</span>
+                                        <span class="text-[9px] font-extrabold text-gray-500 uppercase tracking-widest">Tracking Info Soon</span>
+                                    </div>
+                                `;
+                            }
+                        }
+
                         myOrdersHTML += `
                             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm mb-4">
                                 <div class="border-b border-gray-100 pb-3 mb-3">
@@ -1060,6 +1084,7 @@
                                         <div class="text-right flex flex-col items-end">${statusBadge}<span class="inline-block mt-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded uppercase w-max">${order.payment}</span></div>
                                     </div>
                                     ${itemsHTML}
+                                    ${trackingHTML}
                                 </div>
                                 <div class="mb-3"><p class="text-xs text-gray-800 font-bold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-yellow-500"></i> Deliver To</p><p class="text-[11px] text-gray-600 ml-5 font-semibold">${order.name}</p><p class="text-[11px] text-gray-500 ml-5 leading-relaxed">${order.address}</p></div>
                                 <div class="bg-gray-50 p-3 rounded-lg border border-gray-100"><p class="text-xs text-gray-800 font-bold mb-2 flex items-center gap-1.5"><i class="fa-solid fa-wallet text-yellow-500"></i> Payment Details</p>${paymentStatus}</div>
