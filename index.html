@@ -153,6 +153,7 @@
         let currentSelectedSize = null; 
         let currentComboSize1 = null; 
         let currentComboSize2 = null; 
+        let currentSelectedColor = null; 
         
         const appDiv = document.getElementById('app');
         const topNav = document.getElementById('topNav');
@@ -292,7 +293,7 @@
                 return `
                 <div onclick="filterCategory('${safeCatName}')" class="flex flex-col items-center gap-1.5 cursor-pointer w-full">
                     <div class="w-14 h-14 rounded-full overflow-hidden border-[2.5px] ${activeCategory === cat.name ? 'border-yellow-500 shadow-md scale-105' : 'border-gray-200'} transition-all mx-auto flex-shrink-0 bg-white">
-                        <img src="${cat.img}" class="w-full h-full object-cover">
+                        <img src="${cat.img}" loading="lazy" class="w-full h-full object-cover">
                     </div>
                     <span class="text-[9px] md:text-[10px] ${activeCategory === cat.name ? 'text-yellow-600 font-extrabold' : 'text-gray-600 font-bold'} text-center w-full uppercase break-words line-clamp-2 leading-tight">${cat.name}</span>
                 </div>
@@ -308,7 +309,7 @@
                         <i class="fa-solid fa-heart"></i>
                     </button>
                     <div onclick="viewProduct('${item.id}')" class="cursor-pointer relative overflow-hidden">
-                        <img src="${item.img}" class="w-full h-44 object-cover transform group-hover:scale-105 transition duration-500">
+                        <img src="${item.img}" loading="lazy" class="w-full h-44 object-cover transform group-hover:scale-105 transition duration-500">
                     </div>
                     <div class="p-3 flex flex-col flex-grow border-t border-gray-100">
                         <h3 onclick="viewProduct('${item.id}')" class="text-sm font-bold truncate text-gray-800 cursor-pointer hover:text-yellow-600 transition tracking-tight">${item.name}</h3>
@@ -336,7 +337,7 @@
             let bannerHTML = banners.map(b => `
                 <div class="w-full min-w-full flex-shrink-0 snap-center px-3 pt-4 pb-2 box-border">
                     <a href="${b.target_link || '#'}" class="block w-full">
-                        <img src="${b.img}" class="w-full h-48 object-cover rounded-2xl shadow-sm border border-gray-200">
+                        <img src="${b.img}" loading="lazy" class="w-full h-48 object-cover rounded-2xl shadow-sm border border-gray-200">
                     </a>
                 </div>
             `).join('');
@@ -393,7 +394,7 @@
         function _showCollection() {
             showNavs();
             
-            let displayProducts = [...products].reverse(); // Reverses the array to show newest at the top
+            let displayProducts = [...products].reverse();
             
             let prodHTML = displayProducts.map(item => {
                 const isLiked = likedItems.includes(item.id);
@@ -405,7 +406,7 @@
                         <i class="fa-solid fa-heart"></i>
                     </button>
                     <div onclick="viewProduct('${item.id}')" class="cursor-pointer relative overflow-hidden">
-                        <img src="${item.img}" class="w-full h-[400px] object-cover transform group-hover:scale-105 transition duration-500">
+                        <img src="${item.img}" loading="lazy" class="w-full h-[400px] object-cover transform group-hover:scale-105 transition duration-500">
                     </div>
                     <div class="p-5 flex flex-col flex-grow border-t border-gray-100">
                         <h3 onclick="viewProduct('${item.id}')" class="text-xl font-extrabold truncate text-gray-900 cursor-pointer hover:text-yellow-600 transition tracking-tight">${item.name}</h3>
@@ -474,7 +475,7 @@
                     return `
                     <div class="bg-white border border-gray-200 rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.04)] relative flex flex-col justify-between overflow-hidden group">
                         <button onclick="event.stopPropagation(); toggleLike(this, '${item.id}'); setTimeout(_showLikes, 300);" class="absolute top-2 right-2 text-red-500 z-10 text-xl bg-white/80 rounded-full w-8 h-8 flex items-center justify-center backdrop-blur-sm shadow-sm transition-colors hover:scale-110"><i class="fa-solid fa-heart"></i></button>
-                        <div onclick="viewProduct('${item.id}')" class="cursor-pointer relative overflow-hidden"><img src="${item.img}" class="w-full h-44 object-cover transform group-hover:scale-105 transition duration-500"></div>
+                        <div onclick="viewProduct('${item.id}')" class="cursor-pointer relative overflow-hidden"><img src="${item.img}" loading="lazy" class="w-full h-44 object-cover transform group-hover:scale-105 transition duration-500"></div>
                         <div class="p-3 flex flex-col flex-grow border-t border-gray-100">
                             <h3 class="text-sm font-bold truncate text-gray-800">${item.name}</h3>
                             <div class="mt-2 flex items-center gap-1.5">
@@ -504,43 +505,118 @@
             window.scrollTo(0,0);
         }
 
-        // --- PRODUCT PAGE ---
+        // --- PRODUCT PAGE & COLOR SELECTOR ---
         function selectSize(size) { currentSelectedSize = size; }
         function selectComboSize1(size) { currentComboSize1 = size; }
         function selectComboSize2(size) { currentComboSize2 = size; }
+        
+        function selectColor(index, name, imgUrl) {
+            currentSelectedColor = { name: name, img: imgUrl };
+            document.getElementById('mainProductImage').src = imgUrl;
+            document.getElementById('selectedColorText').innerText = name;
+            document.getElementById('mainImageWrapper').setAttribute('onclick', `openImage('${imgUrl}')`);
+            
+            const thumbs = document.querySelectorAll('[id^="colorThumb-"]');
+            thumbs.forEach(t => {
+                t.classList.remove('border-gray-800', 'shadow-md');
+                t.classList.add('border-gray-200', 'opacity-70');
+            });
+            
+            let activeThumb = document.getElementById(`colorThumb-${index}`);
+            if (activeThumb) {
+                activeThumb.classList.remove('border-gray-200', 'opacity-70');
+                activeThumb.classList.add('border-gray-800', 'shadow-md');
+            }
+
+            if (currentColorSizesArr.length > index && currentColorSizesArr[index]) {
+                let szs = currentColorSizesArr[index].split(',').map(s=>s.trim()).filter(s=>s);
+                if (szs.length > 0) {
+                    currentSelectedSize = null; 
+                    let dHtml = `<div class="flex flex-wrap gap-2 mb-3">` + szs.map(s => {
+                        let safeId = s.replace(/\s+/g, '-');
+                        return `<div><input type="radio" name="productSize" id="size-${safeId}" value="${s}" class="hidden size-radio" onchange="selectSize('${s}')"><label for="size-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
+                    }).join('') + `</div>`;
+                    let container = document.getElementById('dynamicSizeContainer');
+                    if (container) container.innerHTML = dHtml;
+                }
+            }
+        }
 
         function _viewProduct(id) {
             showNavs();
             const product = products.find(p => p.id === id);
             if(!product) { goHome(); return; }
             
-            currentSelectedSize = null; currentComboSize1 = null; currentComboSize2 = null;
-            let sizeHTML = "";
-            let hasShirt = !!product.shirtSizes && product.shirtSizes.trim() !== "";
-            let hasJeans = !!product.jeansSizes && product.jeansSizes.trim() !== "";
+            currentSelectedSize = null; currentComboSize1 = null; currentComboSize2 = null; currentSelectedColor = null;
+            currentColorSizesArr = [];
+            
+            let colorHTML = "";
+            let hasColors = !!product.colorNames && !!product.colorImages && product.colorNames.trim() !== "";
+            
+            if (hasColors && product.colorSizes && product.colorSizes.trim() !== "") {
+                currentColorSizesArr = product.colorSizes.split('|').map(s => s.trim());
+            }
+            
+            if (hasColors) {
+                let names = product.colorNames.split(',').map(n => n.trim());
+                let images = product.colorImages.split(',').map(i => i.trim());
+                
+                if (names.length > 0 && images.length > 0 && names.length === images.length) {
+                    currentSelectedColor = { name: names[0], img: images[0] };
+                    
+                    colorHTML = `
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-6">
+                        <p class="font-bold text-gray-800 text-sm mb-3">Selected Color: <span id="selectedColorText" class="font-medium text-gray-600">${names[0]}</span></p>
+                        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                            ${names.map((n, idx) => {
+                                let safeName = n.replace(/'/g, "\\'");
+                                return `<div onclick="selectColor(${idx}, '${safeName}', '${images[idx]}')" id="colorThumb-${idx}" class="w-16 h-20 flex-shrink-0 border-2 ${idx === 0 ? 'border-gray-800 shadow-md' : 'border-gray-200 opacity-70'} rounded-lg overflow-hidden cursor-pointer transition hover:border-gray-800 hover:opacity-100">
+                                    <img src="${images[idx]}" loading="lazy" class="w-full h-full object-cover">
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    `;
+                }
+            }
 
-            if (hasShirt) {
-                let sArr = product.shirtSizes.split(',').map(s => s.trim());
-                sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${sArr.map(s => {
-                    let safeId = s.replace(/\s+/g, '-');
-                    return `<div><input type="radio" name="comboShirt" id="cs1-${safeId}" value="${s}" class="hidden size-radio" onchange="selectComboSize1('${s}')"><label for="cs1-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
-                }).join('')}</div>`;
-            }
-            if (hasJeans) {
-                let jArr = product.jeansSizes.split(',').map(s => s.trim());
-                sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${jArr.map(s => {
-                    let safeId = s.replace(/\s+/g, '-');
-                    return `<div><input type="radio" name="comboJeans" id="cs2-${safeId}" value="${s}" class="hidden size-radio" onchange="selectComboSize2('${s}')"><label for="cs2-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
-                }).join('')}</div>`;
-            }
-            if (!hasShirt && !hasJeans) {
-                sizeHTML += `<div class="flex flex-wrap gap-3"><div><input type="radio" name="productSize" id="size-Free" value="Free Size" class="hidden size-radio" onchange="selectSize('Free Size')"><label for="size-Free" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-4 py-2 rounded-md shadow-sm hover:border-yellow-500 transition block">Free Size</label></div></div>`;
+            let sizeHTML = "";
+            
+            if (hasColors && currentColorSizesArr.length > 0 && currentColorSizesArr[0]) {
+                let szs = currentColorSizesArr[0].split(',').map(s=>s.trim()).filter(s=>s);
+                if(szs.length > 0) {
+                    sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">` + szs.map(s => {
+                        let safeId = s.replace(/\s+/g, '-');
+                        return `<div><input type="radio" name="productSize" id="size-${safeId}" value="${s}" class="hidden size-radio" onchange="selectSize('${s}')"><label for="size-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
+                    }).join('') + `</div>`;
+                }
+            } else {
+                let hasShirt = !!product.shirtSizes && product.shirtSizes.trim() !== "";
+                let hasJeans = !!product.jeansSizes && product.jeansSizes.trim() !== "";
+
+                if (hasShirt) {
+                    let sArr = product.shirtSizes.split(',').map(s => s.trim());
+                    sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${sArr.map(s => {
+                        let safeId = s.replace(/\s+/g, '-');
+                        return `<div><input type="radio" name="comboShirt" id="cs1-${safeId}" value="${s}" class="hidden size-radio" onchange="selectComboSize1('${s}')"><label for="cs1-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
+                    }).join('')}</div>`;
+                }
+                if (hasJeans) {
+                    let jArr = product.jeansSizes.split(',').map(s => s.trim());
+                    sizeHTML += `<div class="flex flex-wrap gap-2 mb-3">${jArr.map(s => {
+                        let safeId = s.replace(/\s+/g, '-');
+                        return `<div><input type="radio" name="comboJeans" id="cs2-${safeId}" value="${s}" class="hidden size-radio" onchange="selectComboSize2('${s}')"><label for="cs2-${safeId}" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-3 py-1.5 text-xs rounded-md shadow-sm hover:border-yellow-500 transition block text-center min-w-[40px]">${s}</label></div>`;
+                    }).join('')}</div>`;
+                }
+                if (!hasShirt && !hasJeans) {
+                    sizeHTML += `<div class="flex flex-wrap gap-3"><div><input type="radio" name="productSize" id="size-Free" value="Free Size" class="hidden size-radio" onchange="selectSize('Free Size')"><label for="size-Free" class="cursor-pointer border border-gray-300 text-gray-700 bg-white font-bold px-4 py-2 rounded-md shadow-sm hover:border-yellow-500 transition block">Free Size</label></div></div>`;
+                }
             }
 
             let moreProducts = products.filter(p => p.id !== id).sort(() => 0.5 - Math.random()).slice(0, 4);
             let moreProdHTML = moreProducts.map(item => `
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm relative flex flex-col justify-between overflow-hidden cursor-pointer" onclick="viewProduct('${item.id}')">
-                    <img src="${item.img}" class="w-full h-40 object-cover hover:scale-105 transition duration-300">
+                    <img src="${item.img}" loading="lazy" class="w-full h-40 object-cover hover:scale-105 transition duration-300">
                     <div class="p-3 flex flex-col flex-grow border-t border-gray-100 bg-gray-50">
                         <h3 class="text-[11px] font-bold truncate text-gray-800">${item.name}</h3>
                         <span class="font-extrabold text-gray-900 text-sm mt-1">₹${item.price}</span>
@@ -549,12 +625,14 @@
             `).join('');
 
             const discountVal = product.discount ? String(product.discount).replace(/OFF/gi, '').trim() : '';
+            const initialMainImage = currentSelectedColor ? currentSelectedColor.img : product.img;
 
             appDiv.innerHTML = `
                 <div class="fade-in relative pb-24 bg-gray-50 min-h-screen">
                     <button onclick="history.back()" class="absolute top-4 left-4 bg-white/90 border border-gray-200 text-gray-800 rounded-full w-10 h-10 z-10 flex items-center justify-center backdrop-blur-sm shadow-md hover:text-yellow-600 transition"><i class="fa-solid fa-arrow-left"></i></button>
-                    <div onclick="openImage('${product.img}')" class="relative cursor-zoom-in bg-white border-b border-gray-200 shadow-sm">
-                        <img src="${product.img}" class="w-full h-[450px] object-cover">
+                    
+                    <div id="mainImageWrapper" onclick="openImage('${initialMainImage}')" class="relative cursor-zoom-in bg-white border-b border-gray-200 shadow-sm">
+                        <img id="mainProductImage" src="${initialMainImage}" class="w-full h-[450px] object-cover">
                         <div class="absolute bottom-3 right-3 bg-white/90 rounded-full w-8 h-8 flex items-center justify-center text-gray-800 border border-gray-200 shadow-md"><i class="fa-solid fa-expand"></i></div>
                     </div>
                     
@@ -562,7 +640,6 @@
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-5 relative">
                             <h1 class="text-xl font-extrabold text-gray-900 leading-tight pr-10">${product.name}</h1>
                             
-                            <!-- PRICE ORDER & ANIMATION (Flipkart Style) -->
                             <div class="mt-4 flex items-center gap-2.5">
                                 <span class="discount-text text-lg font-extrabold flex items-center tracking-tight"><i class="fa-solid fa-arrow-down text-[13px] mr-1"></i>${discountVal}</span>
                                 <span class="text-gray-400 font-bold text-lg strike-anim tracking-tight">₹${product.mrp}</span>
@@ -570,9 +647,11 @@
                             </div>
                         </div>
 
+                        ${colorHTML}
+
                         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-6">
                             <h3 class="font-extrabold text-gray-800 mb-3 text-sm flex items-center gap-2"><i class="fa-solid fa-ruler-combined text-yellow-500"></i> SELECT SIZE</h3>
-                            ${sizeHTML}
+                            <div id="dynamicSizeContainer">${sizeHTML}</div>
                         </div>
 
                         <div class="flex items-center gap-2 mb-4 mt-8">
@@ -627,10 +706,10 @@
                 const discountVal = item.discount ? String(item.discount).replace(/OFF/gi, '').trim() : '';
                 return `
                     <div class="flex gap-4 items-center bg-white p-3 rounded-xl border border-gray-200 mb-3 shadow-sm relative">
-                        <img src="${item.img}" class="w-20 h-20 object-cover rounded-lg border border-gray-100">
+                        <img src="${item.img}" loading="lazy" class="w-20 h-20 object-cover rounded-lg border border-gray-100">
                         <div class="flex-grow pr-8">
                             <p class="font-bold text-gray-800 text-sm leading-tight mb-1">${item.name}</p>
-                            <p class="text-[11px] text-gray-500 font-medium mb-1.5">Size: <span class="text-yellow-600 font-bold bg-yellow-50 px-1 rounded">${item.size}</span></p>
+                            <p class="text-[11px] text-gray-500 font-medium mb-1.5">Size: <span class="text-yellow-600 font-bold bg-yellow-50 px-1 rounded">${item.size}</span> ${item.color ? `| Color: <span class="text-gray-800 font-bold">${item.color}</span>` : ''}</p>
                             
                             <div class="flex items-center gap-1.5">
                                 <span class="discount-text text-[10px] font-extrabold flex items-center tracking-tight"><i class="fa-solid fa-arrow-down text-[8px] mr-0.5"></i>${discountVal}</span>
@@ -669,6 +748,11 @@
         }
 
         function getValidatedSize(product) {
+            if(product.colorSizes && product.colorSizes.trim() !== "") {
+                if(!currentSelectedSize) return null;
+                return currentSelectedSize;
+            }
+
             let hasShirt = !!product.shirtSizes && product.shirtSizes.trim() !== "";
             let hasJeans = !!product.jeansSizes && product.jeansSizes.trim() !== "";
             
@@ -693,7 +777,10 @@
             
             if(!finalSize) { alert("Please select required sizes first!"); return; }
 
-            cart.push({ ...product, size: finalSize, cartId: Date.now() });
+            const finalColor = currentSelectedColor ? currentSelectedColor.name : null;
+            const finalImg = currentSelectedColor ? currentSelectedColor.img : product.img;
+
+            cart.push({ ...product, size: finalSize, color: finalColor, img: finalImg, cartId: Date.now(), isFlipkart: product.isFlipkart });
             localStorage.setItem('uf_cart', JSON.stringify(cart));
             updateCartBadge();
             
@@ -786,18 +873,20 @@
 
             if (source === 'cart') {
                 total = cart.reduce((sum, item) => sum + item.price, 0);
-                productNames = cart.map(i => `${i.name} (Size: ${i.size})`).join(", ");
+                productNames = cart.map(i => `${i.name} (Size: ${i.size}${i.color ? `, Color: ${i.color}` : ''})`).join(", ");
                 primaryImg = cart[0].img;
-                orderItems = cart.map(i => ({ name: i.name, size: i.size, price: i.price, img: i.img }));
+                orderItems = cart.map(i => ({ name: i.name, size: i.size, color: i.color || '', price: i.price, img: i.img, isFlipkart: i.isFlipkart }));
             } else {
                 const product = products.find(p => p.id === source);
                 total = product.price;
-                productNames = `${product.name} (Size: ${currentSelectedSize})`;
-                primaryImg = product.img;
-                orderItems = [{ name: product.name, size: currentSelectedSize, price: product.price, img: product.img }];
+                const finalColorName = currentSelectedColor ? currentSelectedColor.name : '';
+                productNames = `${product.name} (Size: ${currentSelectedSize}${finalColorName ? `, Color: ${finalColorName}` : ''})`;
+                primaryImg = currentSelectedColor ? currentSelectedColor.img : product.img;
+                orderItems = [{ name: product.name, size: currentSelectedSize, color: finalColorName, price: product.price, img: primaryImg, isFlipkart: product.isFlipkart }];
             }
 
-            tempCheckoutData = { names: productNames, price: total, img: primaryImg, items: orderItems };
+            let hasFlipkart = orderItems.some(item => item.isFlipkart === 'true' || item.isFlipkart === true);
+            tempCheckoutData = { names: productNames, price: total, img: primaryImg, items: orderItems, hasFlipkart: hasFlipkart };
 
             appDiv.innerHTML = `
                 <div class="fade-in p-5 pb-24 bg-gray-50 min-h-screen">
@@ -916,14 +1005,17 @@
             const uiDiv = document.getElementById('paymentUI');
             uiDiv.classList.remove('hidden');
             const totalAmount = tempCheckoutData.price;
-            const qrUrl = paymentSettings.qr_url;
+            
+            // FIX: Dynamic QR and UPI Logic based on Flipkart product presence
+            const qrUrl = tempCheckoutData.hasFlipkart && paymentSettings.flipkart_qr_url ? paymentSettings.flipkart_qr_url : paymentSettings.qr_url;
+            const activeUpi = tempCheckoutData.hasFlipkart && paymentSettings.flipkart_upi_id ? paymentSettings.flipkart_upi_id : paymentSettings.upi_id;
 
             if (!isCOD) {
                 uiDiv.innerHTML = `
                     <p class="text-center text-sm text-gray-500 font-bold mb-1">Scan QR or Pay via UPI</p>
                     <p class="text-center font-black text-2xl text-gray-900 mb-2">₹${totalAmount}</p>
-                    <p class="text-center text-xs font-bold text-gray-700 mb-4 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${paymentSettings.upi_id || 'Not available'}</span></p>
-                    <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-36 h-36 border-4 border-gray-100 rounded-xl p-1 bg-white shadow-sm"></div>
+                    <p class="text-center text-xs font-bold text-gray-700 mb-4 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${activeUpi || 'Not available'}</span></p>
+                    <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-56 h-56 border-4 border-gray-100 rounded-xl p-2 bg-white shadow-md"></div>
                     <div class="bg-red-50 border border-red-200 p-3 rounded-lg mb-3">
                         <p class="text-[11px] text-center text-red-600 font-bold">⚠️ Please complete the payment now.</p>
                         <p class="text-[10px] text-center text-gray-600 mt-1 font-medium">You will need to send the screenshot on the next screen to confirm your order.</p>
@@ -936,8 +1028,8 @@
                         <p class="text-[11px] text-yellow-700 font-bold">For C.O.D, 30% advance token is required.</p>
                         <p class="font-black text-xl text-gray-900 mt-1">Token: ₹${tokenAmount}</p>
                     </div>
-                    <p class="text-center text-xs font-bold text-gray-700 mb-3 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${paymentSettings.upi_id || 'Not available'}</span></p>
-                    <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-36 h-36 border-4 border-gray-100 rounded-xl p-1 bg-white shadow-sm"></div>
+                    <p class="text-center text-xs font-bold text-gray-700 mb-3 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${activeUpi || 'Not available'}</span></p>
+                    <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-56 h-56 border-4 border-gray-100 rounded-xl p-2 bg-white shadow-md"></div>
                     <div class="bg-red-50 border border-red-200 p-3 rounded-lg mb-2">
                         <p class="text-[11px] text-center text-red-600 font-bold">⚠️ Please complete the token payment now.</p>
                         <p class="text-[10px] text-center text-gray-600 mt-1 font-medium">You will need to send the screenshot on the next screen to confirm your order.</p>
@@ -964,6 +1056,10 @@
                 await db.ref('orders/' + newOrder.id).set(newOrder);
                 cart = []; localStorage.setItem('uf_cart', JSON.stringify(cart)); updateCartBadge();
                 
+                // Play Success Sound
+                successAudio.currentTime = 0;
+                successAudio.play().catch(e => {});
+
                 const waNum = paymentSettings.whatsapp;
                 const waText = encodeURIComponent(`Hello Unique Fashion, here is my payment screenshot for Order ID: ${newOrder.id}`);
 
@@ -994,7 +1090,6 @@
         function _showMyOrders() {
             showNavs();
             
-            // Check if user exists in local storage
             if (!currentUser) {
                 appDiv.innerHTML = `
                     <div class="fade-in p-5 text-center flex flex-col items-center justify-center min-h-[70vh] bg-gray-50">
@@ -1040,18 +1135,17 @@
                         if (order.items && order.items.length > 0) {
                             itemsHTML = `<div class="mt-3 flex flex-col gap-2">` + order.items.map(item => `
                                 <div class="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                    <img src="${item.img}" class="w-12 h-12 object-cover rounded border border-gray-200 bg-white">
+                                    <img src="${item.img}" loading="lazy" class="w-12 h-12 object-cover rounded border border-gray-200 bg-white">
                                     <div class="flex-grow overflow-hidden">
                                         <p class="font-bold text-gray-800 text-[11px] leading-tight break-words">${item.name}</p>
-                                        <p class="text-[10px] text-gray-500 mt-1 font-medium">Size: <span class="text-yellow-600 font-bold">${item.size}</span> | ₹${item.price}</p>
+                                        <p class="text-[10px] text-gray-500 mt-1 font-medium">Size: <span class="text-yellow-600 font-bold">${item.size}</span> ${item.color ? `| Color: <span class="text-gray-800 font-bold">${item.color}</span>` : ''} | ₹${item.price}</p>
                                     </div>
                                 </div>
                             `).join('') + `</div>`;
                         } else {
-                            itemsHTML = `<div class="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-100 mt-3"><img src="${order.img}" class="w-12 h-12 object-cover rounded border border-gray-200 bg-white"><div class="flex-grow overflow-hidden"><p class="font-bold text-gray-800 text-[11px] leading-tight break-words">${order.product_name}</p></div></div>`;
+                            itemsHTML = `<div class="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-100 mt-3"><img src="${order.img}" loading="lazy" class="w-12 h-12 object-cover rounded border border-gray-200 bg-white"><div class="flex-grow overflow-hidden"><p class="font-bold text-gray-800 text-[11px] leading-tight break-words">${order.product_name}</p></div></div>`;
                         }
 
-                        // NEW: Tracking ID & Tracking Link Logic for Customers
                         let trackingHTML = "";
                         if (order.status === "Confirmed") {
                             if (order.tracking_id && order.tracking_link) {
