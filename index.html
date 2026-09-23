@@ -977,13 +977,8 @@
                     <form onsubmit="confirmOrder(event)">
                         <div class="mb-6">
                             <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-200 mb-3 cursor-pointer shadow-sm hover:border-yellow-500 transition">
-                                <input type="radio" id="prepaid" name="payment" value="Prepaid" onchange="renderPaymentUI()" class="accent-yellow-500 w-5 h-5 cursor-pointer">
+                                <input type="radio" id="prepaid" name="payment" value="Prepaid" onchange="renderPaymentUI()" class="accent-yellow-500 w-5 h-5 cursor-pointer" checked>
                                 <span class="text-gray-800 font-bold text-sm w-full">Prepaid (Full Payment)</span>
-                            </label>
-                            
-                            <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-200 mb-3 cursor-pointer shadow-sm hover:border-yellow-500 transition">
-                                <input type="radio" id="cod" name="payment" value="COD" onchange="renderPaymentUI()" class="accent-yellow-500 w-5 h-5 cursor-pointer" checked>
-                                <span class="text-gray-800 font-bold text-sm w-full">Cash on Delivery (C.O.D)</span>
                             </label>
                             
                             <div id="paymentUI" class="mt-5 p-5 bg-white border border-yellow-300 rounded-xl shadow-md hidden"></div>
@@ -1001,7 +996,6 @@
 
         // NEW: UPI ID visible in the UI
         function renderPaymentUI() {
-            const isCOD = document.getElementById('cod').checked;
             const uiDiv = document.getElementById('paymentUI');
             uiDiv.classList.remove('hidden');
             const totalAmount = tempCheckoutData.price;
@@ -1010,37 +1004,21 @@
             const qrUrl = tempCheckoutData.hasFlipkart && paymentSettings.flipkart_qr_url ? paymentSettings.flipkart_qr_url : paymentSettings.qr_url;
             const activeUpi = tempCheckoutData.hasFlipkart && paymentSettings.flipkart_upi_id ? paymentSettings.flipkart_upi_id : paymentSettings.upi_id;
 
-            if (!isCOD) {
-                uiDiv.innerHTML = `
-                    <p class="text-center text-sm text-gray-500 font-bold mb-1">Scan QR or Pay via UPI</p>
-                    <p class="text-center font-black text-2xl text-gray-900 mb-2">₹${totalAmount}</p>
-                    <p class="text-center text-xs font-bold text-gray-700 mb-4 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${activeUpi || 'Not available'}</span></p>
-                    <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-56 h-56 border-4 border-gray-100 rounded-xl p-2 bg-white shadow-md"></div>
-                    <div class="bg-red-50 border border-red-200 p-3 rounded-lg mb-3">
-                        <p class="text-[11px] text-center text-red-600 font-bold">⚠️ Please complete the payment now.</p>
-                        <p class="text-[10px] text-center text-gray-600 mt-1 font-medium">You will need to send the screenshot on the next screen to confirm your order.</p>
-                    </div>
-                `;
-            } else {
-                const tokenAmount = Math.round(totalAmount * 0.30);
-                uiDiv.innerHTML = `
-                    <div class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg mb-3 text-center shadow-sm">
-                        <p class="text-[11px] text-yellow-700 font-bold">For C.O.D, 30% advance token is required.</p>
-                        <p class="font-black text-xl text-gray-900 mt-1">Token: ₹${tokenAmount}</p>
-                    </div>
-                    <p class="text-center text-xs font-bold text-gray-700 mb-3 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${activeUpi || 'Not available'}</span></p>
-                    <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-56 h-56 border-4 border-gray-100 rounded-xl p-2 bg-white shadow-md"></div>
-                    <div class="bg-red-50 border border-red-200 p-3 rounded-lg mb-2">
-                        <p class="text-[11px] text-center text-red-600 font-bold">⚠️ Please complete the token payment now.</p>
-                        <p class="text-[10px] text-center text-gray-600 mt-1 font-medium">You will need to send the screenshot on the next screen to confirm your order.</p>
-                    </div>
-                `;
-            }
+            uiDiv.innerHTML = `
+                <p class="text-center text-sm text-gray-500 font-bold mb-1">Scan QR or Pay via UPI</p>
+                <p class="text-center font-black text-2xl text-gray-900 mb-2">₹${totalAmount}</p>
+                <p class="text-center text-xs font-bold text-gray-700 mb-4 bg-gray-100 py-1.5 rounded-md">UPI ID: <span class="text-green-600 select-all">${activeUpi || 'Not available'}</span></p>
+                <div class="flex justify-center mb-5"><img src="${qrUrl}" class="w-56 h-56 border-4 border-gray-100 rounded-xl p-2 bg-white shadow-md"></div>
+                <div class="bg-red-50 border border-red-200 p-3 rounded-lg mb-3">
+                    <p class="text-[11px] text-center text-red-600 font-bold">⚠️ Please complete the payment now.</p>
+                    <p class="text-[10px] text-center text-gray-600 mt-1 font-medium">You will need to send the screenshot on the next screen to confirm your order.</p>
+                </div>
+            `;
         }
 
         async function confirmOrder(event) {
             event.preventDefault();
-            const paymentType = document.getElementById('cod').checked ? "COD" : "Prepaid";
+            const paymentType = "Prepaid";
             const newOrder = {
                 id: Date.now().toString(), date: new Date().toLocaleString(),
                 name: tempCheckoutData.name, phone: tempCheckoutData.phone,
